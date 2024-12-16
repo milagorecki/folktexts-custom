@@ -69,6 +69,8 @@ class BenchmarkConfig:
     feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
+    randomize_feature_order: bool = False
+    prompt_style: dict | None = None
 
     @classmethod
     def default_config(cls, **changes):
@@ -547,11 +549,13 @@ class Benchmark:
                 n_shots=config.few_shot,
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
+                prompt_style=config.prompt_style,
+                **kwargs
             )
 
         else:
             print("Using zero-shot prompting.")
-            encode_row_function = partial(encode_row_prompt, task=task)
+            encode_row_function = partial(encode_row_prompt, task=task, prompt_style=config.prompt_style, **kwargs)
 
         # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}

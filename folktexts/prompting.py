@@ -36,6 +36,44 @@ The data provided is enough to reach an approximate answer for each person.
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
 
+def serialize_row(
+    row: pd.Series,
+    task: TaskMetadata,
+    format: str = 'bullet',
+    connector: str = "is",
+    standardized_sentence=True,
+    **kwargs
+):
+    logging.warn(f"{kwargs} are currently ignored.")
+    if format == "bullet":
+        return (
+            "\n".join(
+                [
+                    "- "
+                    + f"{task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col].value_map(val)}"
+                    for (col, val) in row.items()
+                ]
+            )
+            + "\n"
+        )
+    elif format == "text":
+        return (
+            " ".join(
+                [
+                    (
+                        f"The {task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col].value_map(val)}."
+                        if standardized_sentence
+                        else task.cols_to_text[col].verbalize(val)
+                    )
+                    for (col, val) in row.items()
+                ]
+            )
+            + "\n"
+        )
+    else:
+        raise NotImplementedError(
+            "Style not implemented, currently only 'bullet' list and 'text' are supported."
+        )
 
 def encode_row_prompt(
     row: pd.Series,
@@ -43,18 +81,28 @@ def encode_row_prompt(
     question: QAInterface = None,
     custom_prompt_prefix: str = None,
     add_task_description: bool = True,
+    custom_prompt_suffix: str = None,
+    prompt_style: dict | None = None,
 ) -> str:
     """Encode a question regarding a given row."""
+    if custom_prompt_prefix and custom_prompt_prefix[-1] != "\n":
+        custom_prompt_prefix = custom_prompt_prefix + "\n"
+    task_description = (ACS_TASK_DESCRIPTION if add_task_description else "") + (
+        f"\n{custom_prompt_prefix}" if custom_prompt_prefix else ""
+    )
+    # ensure only feature defined for the task are used
+    row = row[task.features]
+    serialized_row = serialize_row(row, task, **prompt_style)
     # Get the question to ask
     question = question or task.question
     return (
-        (ACS_TASK_DESCRIPTION + "\n" if add_task_description else "")
-        + (f"\n{custom_prompt_prefix}\n" if custom_prompt_prefix else "")
-        + f"""\
-Information:
-{task.get_row_description(row)}
-
-{question.get_question_prompt()}""")
+        task_description
+        + ("\n" if len(task_description) > 0 else "")
+        + f"Information:\n{serialized_row}"
+        + "\n"
+        + f"{question.get_question_prompt()}"
+        + (custom_prompt_suffix if custom_prompt_suffix else "")
+    )
 
 
 def encode_row_prompt_few_shot(
@@ -65,6 +113,7 @@ def encode_row_prompt_few_shot(
     question: QAInterface = None,
     reuse_examples: bool = False,
     custom_prompt_prefix: str = None,
+    prompt_style: dict | None = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -103,6 +152,7 @@ def encode_row_prompt_few_shot(
                 task=task,
                 add_task_description=False,
                 custom_prompt_prefix=custom_prompt_prefix,
+                prompt_style = prompt_style,
             )
             + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
@@ -115,6 +165,7 @@ def encode_row_prompt_few_shot(
         add_task_description=False,
         custom_prompt_prefix=custom_prompt_prefix,
         question=question,
+        prompt_style = prompt_style,
     )
     return prompt
 
