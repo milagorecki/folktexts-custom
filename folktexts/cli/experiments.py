@@ -95,7 +95,7 @@ def launch_experiment_job(exp: Experiment):
         "request_memory": f"{exp.job_memory_gb}GB",
         "request_disk": "10GB",
         "jobprio": f"{exp.job_bid - 1000}",
-        "notify_user": "andre.cruz@tuebingen.mpg.de",
+        "notify_user": "mila.gorecki@tuebingen.mpg.de",
         "notification": "error",
 
         # Environment variables
