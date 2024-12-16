@@ -74,6 +74,13 @@ def evaluate_binary_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     # Positive Prediction Rate
     results["ppr"] = safe_division(pred_pos, total, worst_result=0)
 
+    # add counts
+    results["num_samples"] = int(total)
+    results["num_positives"] = int(label_pos)
+    results["num_negatives"] = int(label_neg)
+    results["num_pred_positives"] = int(pred_pos)
+    results["num_pred_negatives"] = int(pred_neg)
+
     return results
 
 
@@ -153,26 +160,27 @@ def evaluate_binary_predictions_fairness(
 
     # Compute ratios and absolute diffs
     for metric_name in unique_metrics:
-        curr_metric_results = [
-            groupwise_metrics[curr_group_metric_name]
-            for group_name in unique_groups
-            if (curr_group_metric_name := group_metric_name(metric_name, group_name)) in groupwise_metrics
-        ]
+        if not metric_name.startswith("num_"):  # don't compute ratios or diffs for counts
+            curr_metric_results = [
+                groupwise_metrics[curr_group_metric_name]
+                for group_name in unique_groups
+                if (curr_group_metric_name := group_metric_name(metric_name, group_name)) in groupwise_metrics
+            ]
 
-        # Metrics' ratio
-        ratio_name = f"{metric_name}_ratio"
+            # Metrics' ratio
+            ratio_name = f"{metric_name}_ratio"
 
-        # NOTE: should this ratio be computed w.r.t. global performance?
-        # - i.e., min(curr_metric_results) / global_curr_metric_result;
-        # - same question for the absolute diff calculations;
-        results[ratio_name] = safe_division(
-            min(curr_metric_results), max(curr_metric_results),
-            worst_result=0,
-        )
+            # NOTE: should this ratio be computed w.r.t. global performance?
+            # - i.e., min(curr_metric_results) / global_curr_metric_result;
+            # - same question for the absolute diff calculations;
+            results[ratio_name] = safe_division(
+                min(curr_metric_results), max(curr_metric_results),
+                worst_result=0,
+            )
 
-        # Metrics' absolute difference
-        diff_name = f"{metric_name}_diff"
-        results[diff_name] = max(curr_metric_results) - min(curr_metric_results)
+            # Metrics' absolute difference
+            diff_name = f"{metric_name}_diff"
+            results[diff_name] = max(curr_metric_results) - min(curr_metric_results)
 
     # ** Equalized odds **
     # default value: use maximum constraint violation for TPR and FPR equality
@@ -236,6 +244,7 @@ def evaluate_predictions(
     sensitive_attribute: np.ndarray = None,
     threshold: float | str = "best",
     model_name: str = None,
+    return_groupwise_metrics: bool = True,  # change default of binary eval, set True
 ) -> dict:
     """Evaluates predictions on common performance and fairness metrics.
 
@@ -285,7 +294,13 @@ def evaluate_predictions(
 
     # Evaluate fairness metrics
     if sensitive_attribute is not None:
-        results.update(evaluate_binary_predictions_fairness(y_true, y_pred_binary, sensitive_attribute))
+        results.update(
+            evaluate_binary_predictions_fairness(
+                y_true, 
+                y_pred_binary, 
+                sensitive_attribute,
+                return_groupwise_metrics=return_groupwise_metrics,
+                ))
 
     # Compute additional metrics
     results["roc_auc"] = float(roc_auc_score(y_true, y_pred_scores))
