@@ -92,6 +92,7 @@ def main():
     model_list = args.model or DEFAULT_MODEL_LIST
     save_dir = Path(args.save_dir).expanduser().resolve()
     save_dir.mkdir(exist_ok=True, parents=False)
+    group_save_dir = "/fast/groups/sf/huggingface-models/"
 
     cache_dir = Path(args.tmp_cache_dir).expanduser().resolve()
     cache_dir.mkdir(exist_ok=True, parents=False)
@@ -100,10 +101,18 @@ def main():
         # Create sub-folder to save this model to
         from folktexts.llm_utils import get_model_folder_path
         curr_save_dir = get_model_folder_path(model_name, root_dir=save_dir)
+        group_save_dir = get_model_folder_path(
+            model_name, root_dir=group_save_dir
+        )
 
         # If model already exists on disk, skip
         if Path(curr_save_dir).exists():
             logging.warning(f"Model '{model_name}' already exists at '{curr_save_dir}'")
+            continue
+        if Path(group_save_dir).exists():
+            logging.warning(
+                f"Model '{model_name}' already exists at group directory '{group_save_dir}'"
+            )
             continue
 
         # Download model to tmp dir
