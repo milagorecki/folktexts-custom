@@ -1,5 +1,6 @@
 """A benchmark class for measuring and evaluating LLM calibration.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -269,6 +270,9 @@ class Benchmark:
 
         # Get sensitive attribute data if available
         s_test = None
+        logging.info(
+            f"Sensitive attribute defined by task: {self.task.sensitive_attribute}"
+        )
         if self.task.sensitive_attribute is not None:
             s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
 
@@ -300,6 +304,9 @@ class Benchmark:
             threshold=self.llm_clf.threshold,
             model_name=self.llm_clf.model_name,
         )
+
+        if self.task.sensitive_attribute is not None:
+            self._results["sensitive_attribute"] = self.task.sensitive_attribute
 
         # Save predictions save path
         self._results["predictions_path"] = test_predictions_save_path.as_posix()
