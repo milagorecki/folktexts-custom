@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser
+from _utils import ParseDict
 from pathlib import Path
 
 DEFAULT_ACS_TASK = "ACSIncome"
@@ -116,6 +117,15 @@ def setup_arg_parser() -> ArgumentParser:
         default="WARNING",
     )
 
+    parser.add_argument(
+        "--style",
+        help="[dict] Dictionary specifying style of data point serialization.",
+        nargs="*",
+        action=ParseDict,
+        required=False,
+        default={},
+    )
+
     return parser
 
 
@@ -161,6 +171,7 @@ def main():
         feature_subset=args.use_feature_subset or None,
         population_filter=population_filter_dict,
         seed=args.seed,
+        prompt_style=args.style if args.style != {} else None,
     )
 
     # Create ACS Benchmark object

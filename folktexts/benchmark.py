@@ -1,5 +1,4 @@
-"""A benchmark class for measuring and evaluating LLM calibration.
-"""
+"""A benchmark class for measuring and evaluating LLM calibration."""
 
 from __future__ import annotations
 
@@ -73,6 +72,8 @@ class BenchmarkConfig:
     feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
+    randomize_feature_order: bool = False
+    prompt_style: dict | None = None
 
     @classmethod
     def default_config(cls, **changes):
@@ -111,10 +112,11 @@ class BenchmarkConfig:
     def __hash__(self) -> int:
         """Generates a unique hash for the configuration."""
         cfg = dataclasses.asdict(self)
-        cfg["feature_subset"] = tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
+        cfg["feature_subset"] = (
+            tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
+        )
         cfg["population_filter_hash"] = (
-            hash_dict(cfg["population_filter"])
-            if cfg["population_filter"] else None
+            hash_dict(cfg["population_filter"]) if cfg["population_filter"] else None
         )
         return int(hash_dict(cfg), 16)
 
@@ -130,12 +132,10 @@ class Benchmark:
         "survey_year": "2018",
         "horizon": "1-Year",
         "survey": "person",
-
         # Data split configs
         "test_size": 0.1,
         "val_size": 0.1,
         "subsampling": None,
-
         # Fixed random seed
         "seed": 42,
     }
@@ -287,7 +287,9 @@ class Benchmark:
             predictions_save_path=test_predictions_save_path,
             labels=y_test,  # used only to save alongside predictions in disk
         )
-        self._y_test_scores = self.llm_clf._get_positive_class_scores(self._y_test_scores)
+        self._y_test_scores = self.llm_clf._get_positive_class_scores(
+            self._y_test_scores
+        )
 
         # If requested, fit the threshold on a small portion of the train set
         if fit_threshold:
@@ -370,16 +372,18 @@ class Benchmark:
         if self.task.sensitive_attribute is not None:
             s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
 
-            plots_paths.update(render_fairness_plots(
-                y_true=y_test.to_numpy(),
-                y_pred_scores=self._y_test_scores,
-                sensitive_attribute=s_test,
-                eval_results=self.results,
-                model_name=self.llm_clf.model_name,
-                group_value_map=self.task.sensitive_attribute_value_map(),
-                imgs_dir=imgs_dir,
-                show_plots=show_plots,
-            ))
+            plots_paths.update(
+                render_fairness_plots(
+                    y_true=y_test.to_numpy(),
+                    y_pred_scores=self._y_test_scores,
+                    sensitive_attribute=s_test,
+                    eval_results=self.results,
+                    model_name=self.llm_clf.model_name,
+                    group_value_map=self.task.sensitive_attribute_value_map(),
+                    imgs_dir=imgs_dir,
+                    show_plots=show_plots,
+                )
+            )
 
         self._results["plots"] = plots_paths
 
@@ -456,7 +460,8 @@ class Benchmark:
                 logging.warning(
                     f"Received non-standard ACS argument '{arg}' (using "
                     f"{arg}={kwargs[arg]} instead of default {arg}={cls.ACS_DATASET_CONFIGS[arg]}). "
-                    f"This may affect reproducibility.")
+                    f"This may affect reproducibility."
+                )
                 acs_dataset_configs[arg] = kwargs.pop(arg)
 
         # Update config with any additional kwargs
@@ -464,13 +469,12 @@ class Benchmark:
 
         # Fetch ACS task and dataset
         acs_task = ACSTaskMetadata.get_task(
-            name=task_name,
-            use_numeric_qa=config.numeric_risk_prompting)
+            name=task_name, use_numeric_qa=config.numeric_risk_prompting
+        )
 
         acs_dataset = ACSDataset.make_from_task(
-            task=acs_task,
-            cache_dir=data_dir,
-            **acs_dataset_configs)
+            task=acs_task, cache_dir=data_dir, **acs_dataset_configs
+        )
 
         return cls.make_benchmark(
             task=acs_task,
@@ -488,7 +492,7 @@ class Benchmark:
         task: TaskMetadata | str,
         dataset: Dataset,
         model: AutoModelForCausalLM | str,
-        tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
+        tokenizer: AutoTokenizer = None,  # WebAPI models have no local tokenizer
         max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
@@ -537,7 +541,8 @@ class Benchmark:
         if dataset.task is not task and dataset.task.name != task.name:
             raise ValueError(
                 f"Dataset task '{dataset.task.name}' does not match the "
-                f"provided task '{task.name}'.")
+                f"provided task '{task.name}'."
+            )
 
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
@@ -552,11 +557,15 @@ class Benchmark:
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
                 class_balancing=config.balance_few_shot_examples,
+                prompt_style=config.prompt_style,
+                **kwargs,
             )
 
         else:
             print("Using zero-shot prompting.")
-            encode_row_function = partial(encode_row_prompt, task=task)
+            encode_row_function = partial(
+                encode_row_prompt, task=task, prompt_style=config.prompt_style, **kwargs
+            )
 
         # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}

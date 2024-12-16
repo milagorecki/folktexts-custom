@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import partial, reduce
 from pathlib import Path
-
+from argparse import Action
 import numpy as np
 
 
@@ -102,3 +102,37 @@ def suppress_logging(new_level):
         yield
     finally:
         logger.setLevel(previous_level)
+
+
+def is_float(element: any) -> bool:
+    # If you expect None to be passed:
+    if element is None:
+        return False
+    try:
+        float(element)
+        return True
+    except ValueError:
+        return False
+
+
+def is_int(element: any) -> bool:
+    # If you expect None to be passed:
+    if element is None:
+        return False
+    try:
+        int(element)
+        return True
+    except ValueError:
+        return False
+
+
+class ParseDict(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict())
+        for value in values:
+            key, value = value.split("=")
+            if is_int(value):
+                value = int(value)
+            elif is_float(value):
+                value = float(value)
+            getattr(namespace, self.dest)[key] = value
