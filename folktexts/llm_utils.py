@@ -121,8 +121,28 @@ def query_model_batch_multiple_passes(
         # Query the model with the current batch
         current_probs = query_model_batch(current_batch, model, tokenizer, context_size)
 
-        # Filter out probabilities for tokens that are not allowed
-        current_probs[:, ~allowed_tokens_filter] = 0
+        try:
+            # Filter out probabilities for tokens that are not allowed
+            current_probs[:, ~allowed_tokens_filter] = 0
+        except IndexError:
+            logging.error(
+                "Size of tokenizer.vocab and model output don't match. Fix by recreating allowd_token_filter."
+            )
+            vocab_mismatch = True
+            actual_vocab_size = current_probs.shape[1]
+            allowed_tokens_filter = np.ones(actual_vocab_size, dtype=bool)
+            if digits_only:
+                allowed_token_ids = np.array(
+                    [
+                        tok_id
+                        for token, tok_id in tokenizer.vocab.items()
+                        if token.isdecimal()
+                    ]
+                )
+
+                allowed_tokens_filter = np.zeros(current_probs.shape[1], dtype=bool)
+                allowed_tokens_filter[allowed_token_ids] = True
+            current_probs[:, ~allowed_tokens_filter] = 0
 
         # Sanity check digit probabilities
         if iter == 0 and digits_only:
@@ -140,7 +160,10 @@ def query_model_batch_multiple_passes(
     # Cast output to np.array with correct shape
     last_token_probs_array = np.array(last_token_probs)
     last_token_probs_array = np.moveaxis(last_token_probs_array, 0, 1)
-    assert last_token_probs_array.shape == (len(text_inputs), n_passes, len(tokenizer.vocab))
+    assert last_token_probs_array.shape == (
+        len(text_inputs), 
+        n_passes, 
+        len(tokenizer.vocab) if not vocab_mismatch else actual_vocab_size,)
     return last_token_probs_array
 
 
