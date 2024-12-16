@@ -16,7 +16,8 @@ class ColumnToText:
         short_description: str,
         value_map: dict[object, str] | Callable = None,
         question: QAInterface = None,
-        connector_verb: str = "is:",
+        connector_verb: str = "is",
+        verbalize: Callable = None,  # function of value
         missing_value_fill: str = "N/A",
         use_value_map_only: bool = False,
     ):
@@ -39,6 +40,8 @@ class ColumnToText:
         connector_verb : str, optional
             Which verb to use when connecting the column's description to its
             value; by default "is".
+        verbalize : Callable, optional
+            Function of the column value to generate a full sentence as description.
         missing_value_fill : str, optional
             The value to use when the column's value is not found in the
             `value_map`, by default "N/A".
