@@ -39,6 +39,15 @@ def cmd_line_args_to_kwargs(cmdline_args: list) -> dict:
         except ValueError:
             pass
 
+        #try to parse as dict
+        try:
+            # assumes dict is passed as 'key1=val1 key2=val2'
+            list_pairs = val.split() 
+            dictionary = dict([keyval.split('=') for keyval in list_pairs])
+            return dictionary
+        except ValueError:
+            pass
+
         # Otherwise, assume it's a string
         return val
 
