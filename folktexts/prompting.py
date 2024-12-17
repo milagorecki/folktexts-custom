@@ -50,7 +50,7 @@ def serialize_row(
             "\n".join(
                 [
                     "- "
-                    + f"{task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col].value_map(val)}"
+                    + f"{task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col][val]}"
                     for (col, val) in row.items()
                 ]
             )
@@ -61,9 +61,9 @@ def serialize_row(
             " ".join(
                 [
                     (
-                        f"The {task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col].value_map(val)}."
+                        f"The {task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col][val]}."
                         if standardized_sentence
-                        else task.cols_to_text[col].verbalize(val)
+                        else task.cols_to_text[col]._verbalize(task.cols_to_text[col][val])
                     )
                     for (col, val) in row.items()
                 ]

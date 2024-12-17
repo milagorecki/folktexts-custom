@@ -17,7 +17,7 @@ class ColumnToText:
         value_map: dict[object, str] | Callable = None,
         question: QAInterface = None,
         connector_verb: str = "is",
-        verbalize: Callable = None,  # function of value
+        verbalize: Callable = None,  # template sentence, function of value
         missing_value_fill: str = "N/A",
         use_value_map_only: bool = False,
     ):
@@ -60,6 +60,7 @@ class ColumnToText:
         self._connector_verb = connector_verb
         self._missing_value_fill = missing_value_fill
         self._use_value_map_only = use_value_map_only
+        self._verbalize = verbalize
 
         # If a `question` was provided and `value_map` was not
         # > infer `value_map` from question (`value_map` is required for `__getitem__`)
@@ -119,10 +120,12 @@ class ColumnToText:
         if callable(self._value_map):
             return self._value_map
         elif isinstance(self._value_map, dict):
+
             def _helper_func(value: object) -> str:
                 if value not in self._value_map:
                     logging.error(f"Could not find value '{value}' in value map for column '{self.name}'.")
                 return self._value_map.get(value, self._missing_value_fill)
+
             return _helper_func
         else:
             raise ValueError(
