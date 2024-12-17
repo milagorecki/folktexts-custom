@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Launch htcondor jobs for all ACS benchmark experiments.
+Usage: 
+    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_acs_benchmark.py --results-dir './results/test/' --task ACSIncome --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is' 
 """
 import argparse
 import math
