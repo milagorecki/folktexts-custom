@@ -8,8 +8,10 @@ from pprint import pprint
 
 from folktexts._io import load_json, save_json
 from folktexts.llm_utils import get_model_folder_path, get_model_size_B
+from folktexts.cli._utils import get_or_create_results_dir
 
 from .experiments import Experiment, launch_experiment_job
+import logging
 
 # All ACS prediction tasks
 ACS_TASKS = (
@@ -30,7 +32,7 @@ ROOT_DIR = Path("/fast/groups/sf")
 ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Models save directory
-MODELS_DIR = ROOT_DIR / "huggingface-models"
+DEFAULT_MODELS_DIR = ROOT_DIR /"huggingface-models" #Path('/fast/rolmedo/') / 'models' 
 
 
 ##################
@@ -90,6 +92,7 @@ def make_llm_clf_experiment(
     model_name: str,
     task: str,
     results_dir: str,
+    models_dir: str,
     env_vars_str: str = "",
     **kwargs,
 ) -> Experiment:
@@ -99,7 +102,7 @@ def make_llm_clf_experiment(
     model_size_B = get_model_size_B(model_name, default=8)
 
     # Get model path
-    model_path = get_model_folder_path(model_name, root_dir=MODELS_DIR)
+    model_path = get_model_folder_path(model_name, root_dir=models_dir)
     if not Path(model_path).exists() and "use_web_api_model" not in kwargs:
         raise FileNotFoundError(f"Model folder not found at '{model_path}'.")
 
@@ -121,6 +124,13 @@ def make_llm_clf_experiment(
     experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix())
     # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
+    results_dir = get_or_create_results_dir(
+        model_name=model_name,
+        task_name=task,
+        results_root_dir=results_dir,
+    )
+    logging.info(f"Updated results_dir to {results_dir.as_posix()}")
+
     # Define experiment
     exp = Experiment(
         executable_path=executable_path,
@@ -140,6 +150,8 @@ def make_llm_clf_experiment(
         path=Path(results_dir) / f"experiment.{exp.hash()}.json",
         overwrite=True,
     )
+    logging.info(f"Created experiment.{exp.hash()}.json at {results_dir.as_posix()}")
+    print(f"Saving experiment json to {results_dir.as_posix()}")
 
     return exp
 
@@ -160,6 +172,13 @@ def setup_arg_parser() -> argparse.ArgumentParser:
         type=str,
         help="[string] Directory under which results will be saved.",
         required=True,
+    )
+
+    parser.add_argument(
+        "--models-dir",
+        type=str,
+        help="[string] Directory under which models are saved.",
+        required=False,
     )
 
     parser.add_argument(
@@ -215,6 +234,7 @@ def main():
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
 
     # Prepare command-line arguments
+    models_dir = DEFAULT_MODELS_DIR if not args.models_dir else args.models_dir
     models = args.model or LLM_MODELS
     tasks = args.task or ACS_TASKS
     executable_path = Path(args.executable_path).resolve()
@@ -223,6 +243,8 @@ def main():
 
     # Set-up results directory
     Path(args.results_dir).mkdir(parents=True, exist_ok=True)
+
+    print(f"Source for model files set to '{models_dir}'")
 
     # Load experiment from JSON file if provided
     if args.experiment_json:
@@ -238,6 +260,7 @@ def main():
                 model_name=model,
                 task=task,
                 results_dir=args.results_dir,
+                models_dir=models_dir,
                 env_vars_str=args.environment,
                 **extra_kwargs,
             )
