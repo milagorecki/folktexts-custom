@@ -71,7 +71,7 @@ class Experiment:
 def launch_experiment_job(exp: Experiment):
 
     # Name/prefix for cluster logs related to this job
-    cluster_job_log_name = (Path(exp.results_dir) / "log.$(Cluster).$(Process)").as_posix()
+    cluster_job_log_name = (Path(exp.results_dir) / f"log.$(Cluster).$(Process).exp{exp.hash()}").as_posix()
 
     # Construct executable cmd-line arguments
     cmd_line_args = " ".join(
