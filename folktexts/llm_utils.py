@@ -102,6 +102,7 @@ def query_model_batch_multiple_passes(
     """
     # If `digits_only`, get token IDs for digit tokens
     allowed_tokens_filter = np.ones(len(tokenizer.vocab), dtype=bool)
+    vocab_mismatch = False
     if digits_only:
         allowed_token_ids = np.array([
             tok_id

@@ -92,7 +92,7 @@ def encode_row_prompt(
     )
     # ensure only feature defined for the task are used
     row = row[task.features]
-    serialized_row = serialize_row(row, task, **prompt_style)
+    serialized_row = serialize_row(row, task, **prompt_style if prompt_style else {})
     # Get the question to ask
     question = question or task.question
     return (
