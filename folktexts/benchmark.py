@@ -596,6 +596,9 @@ class Benchmark:
             )
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
+        logging.info('Exemplary row encoding')
+        logging.info(llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0]))
+
         return cls(
             llm_clf=llm_clf,
             dataset=dataset,
