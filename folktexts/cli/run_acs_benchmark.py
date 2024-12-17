@@ -192,7 +192,7 @@ def main():
     from folktexts.cli._utils import get_or_create_results_dir
     results_dir = get_or_create_results_dir(
         model_name=Path(args.model).name,
-        task_name=args.task,
+        task_name=bench.task.name,
         results_root_dir=args.results_dir,
     )
     logging.info(f"Saving results to {results_dir.as_posix()}")
