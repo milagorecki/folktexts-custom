@@ -8,8 +8,11 @@ from pathlib import Path
 
 def get_or_create_results_dir(model_name: str, task_name: str, results_root_dir: str | Path) -> Path:
     """Constructs a results directory path from model and task names."""
+    model_name = model_name.replace("/", "--")
     results_dir = Path(results_root_dir).expanduser().resolve()
-    results_dir /= f"model-{model_name}_task-{task_name}"
+    folder_name = f"model-{model_name}/{model_name}_task-{task_name}"
+    if not results_dir.as_posix().endswith(folder_name):
+        results_dir /= folder_name
     if not results_dir.exists():
         logging.info(f"Creating results directory '{results_dir}'.")
         results_dir.mkdir(parents=True, exist_ok=True)
