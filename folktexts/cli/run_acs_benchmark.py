@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser
-from .._utils import ParseDict
+from folktexts._utils import ParseDict
 from pathlib import Path
 
 DEFAULT_ACS_TASK = "ACSIncome"
