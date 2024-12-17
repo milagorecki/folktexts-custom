@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line.
+Usage:
+    - exemplary: run_acs_benchmark --model gpt2 --results-dir './results/test/' --data-dir '../llm_fairness/folktexts/data' --task ACSIncome --subsampling 0.01 --style "format=bullet,connector=is" --logger-level ERROR
 """
 import json
 import logging
