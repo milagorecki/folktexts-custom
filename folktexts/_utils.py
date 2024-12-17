@@ -127,6 +127,13 @@ def is_int(element: any) -> bool:
     except ValueError:
         return False
 
+def is_bool(element: any) -> bool:
+    try:
+        bool(element)
+        return True
+    except ValueError:
+        return False
+
 
 class ParseDict(Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -142,4 +149,6 @@ class ParseDict(Action):
                 value = int(value)
             elif is_float(value):
                 value = float(value)
+            elif is_bool(value):
+                value = bool(value)
             getattr(namespace, self.dest)[key] = value
