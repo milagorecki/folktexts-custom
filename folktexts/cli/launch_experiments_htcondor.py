@@ -126,9 +126,13 @@ def make_llm_clf_experiment(
     experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix())
     # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
+    if "use_feature_subset" in kwargs: 
+        feature_subset = kwargs["use_feature_subset"].split(",")
+        task_with_subset = f"{task}_" + "_".join(sorted(feature_subset))
+
     results_dir = get_or_create_results_dir(
         model_name=model_name,
-        task_name=task,
+        task_name=task if not "use_feature_subset" in kwargs else task_with_subset,
         results_root_dir=results_dir,
     )
     logging.info(f"Updated results_dir to {results_dir.as_posix()}")
