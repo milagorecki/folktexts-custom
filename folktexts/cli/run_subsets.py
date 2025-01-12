@@ -3,6 +3,7 @@ import pandas as pd
 from monoculture.analysis.utils import model_to_key
 from monoculture.analysis.setup import LLM_MODELS, ACS_TASKS
 import folktexts.acs.acs_tasks as acs_tasks
+import random
 import numpy as np
 from argparse import ArgumentParser
 import logging
@@ -68,10 +69,9 @@ def choose_random_subset(task, subset_rel_size: float):
     num_features = len(feature_list)
 
     # get random subset of features
-    rnd_indices = np.random.randint(
-        0, num_features, size=int(np.ceil(num_features * subset_rel_size))
+    subset = random.sample(
+        acs_tasks.acs_income_task.features, int(np.ceil(num_features * subset_rel_size))
     )
-    subset = np.array(feature_list)[rnd_indices].tolist()
 
     return subset
 
