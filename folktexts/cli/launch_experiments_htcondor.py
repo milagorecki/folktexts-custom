@@ -37,7 +37,8 @@ ROOT_DIR = Path("/fast/groups/sf")
 # ROOT_DIR = Path("~").expanduser().resolve()               # on local machine
 
 # data directory
-DATA_DIR = ROOT_DIR / "data"
+ACS_DATA_DIR = ROOT_DIR / "data"
+TABLESHIFT_DATA_DIR = Path("/fast/mgorecki/monoculture/data")
 
 # Models save directory
 DEFAULT_MODELS_DIR = ROOT_DIR /"huggingface-models" #Path('/fast/rolmedo/') / 'models' 
@@ -129,7 +130,7 @@ def make_llm_clf_experiment(
     n_shots = int(experiment_kwargs.get("few_shot", 1))
     experiment_kwargs.setdefault("batch_size", math.ceil(BATCH_SIZE / n_shots))
     experiment_kwargs.setdefault("context_size", CONTEXT_SIZE * n_shots)
-    experiment_kwargs.setdefault("data_dir", DATA_DIR.as_posix())
+    experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix() if task in ACS_TASKS else TABLESHIFT_DATA_DIR.as_posix())
     # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
     if "use_feature_subset" in kwargs: 
