@@ -72,7 +72,7 @@ def serialize_row(
         )
     else:
         raise NotImplementedError(
-            "Style not implemented, currently only 'bullet' list and 'text' are supported."
+            f"Style not implemented, currently only 'bullet' list and 'text' are supported, received '{format}'."
         )
 
 def encode_row_prompt(
