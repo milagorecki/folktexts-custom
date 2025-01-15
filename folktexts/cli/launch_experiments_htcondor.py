@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Launch htcondor jobs for all ACS benchmark experiments.
+"""Launch htcondor jobs for all benchmark experiments.
 Usage: 
     - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_acs_benchmark.py --results-dir './results/test/' --task ACSIncome --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is' 
+    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_tableshift_benchmark.py --results-dir './results/test/' --task BRFSS_Diabetes --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is' 
 """
 import argparse
 import math
@@ -23,6 +24,11 @@ ACS_TASKS = (
     "ACSTravelTime",
     "ACSPublicCoverage",
 )
+TABLESHIFT_TASKS = (
+    "BRFSS_Diabetes",   
+    "BRFSS_Blood_Pressure",
+)
+TASKS = ACS_TASKS + TABLESHIFT_TASKS
 
 ################
 # Useful paths #
@@ -30,8 +36,8 @@ ACS_TASKS = (
 ROOT_DIR = Path("/fast/groups/sf")
 # ROOT_DIR = Path("~").expanduser().resolve()               # on local machine
 
-# ACS data directory
-ACS_DATA_DIR = ROOT_DIR / "data"
+# data directory
+DATA_DIR = ROOT_DIR / "data"
 
 # Models save directory
 DEFAULT_MODELS_DIR = ROOT_DIR /"huggingface-models" #Path('/fast/rolmedo/') / 'models' 
@@ -123,7 +129,7 @@ def make_llm_clf_experiment(
     n_shots = int(experiment_kwargs.get("few_shot", 1))
     experiment_kwargs.setdefault("batch_size", math.ceil(BATCH_SIZE / n_shots))
     experiment_kwargs.setdefault("context_size", CONTEXT_SIZE * n_shots)
-    experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix())
+    experiment_kwargs.setdefault("data_dir", DATA_DIR.as_posix())
     # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
     if "use_feature_subset" in kwargs: 
@@ -198,7 +204,7 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--task",
         type=str,
-        help="[string] ACS task name to run experiments on - can provide multiple!",
+        help="[string] ACS/Tableshift task name to run experiments on - can provide multiple!",
         required=False,
         action="append",
     )
@@ -242,7 +248,7 @@ def main():
     # Prepare command-line arguments
     models_dir = DEFAULT_MODELS_DIR if not args.models_dir else args.models_dir
     models = args.model or LLM_MODELS
-    tasks = args.task or ACS_TASKS
+    tasks = args.task or tasks
     executable_path = Path(args.executable_path).resolve()
     if not executable_path.exists() or not executable_path.is_file():
         raise FileNotFoundError(f"Executable script not found at '{executable_path}'.")

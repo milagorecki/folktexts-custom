@@ -16,6 +16,8 @@ from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number, get_current_timestamp
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_tasks import ACSTaskMetadata
+from .ts.brfss_dataset import TableshiftBRFSSDataset
+from .ts.tableshift_tasks import TableshiftBRFSSTaskMetadata
 from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
@@ -128,6 +130,18 @@ class Benchmark:
         "survey_year": "2018",
         "horizon": "1-Year",
         "survey": "person",
+
+        # Data split configs
+        "test_size": 0.1,
+        "val_size": 0.1,
+        "subsampling": None,
+
+        # Fixed random seed
+        "seed": 42,
+    }
+
+    TABLESHIFT_DATASET_CONFIGS = {
+        # survey configs should be defined in task
 
         # Data split configs
         "test_size": 0.1,
@@ -478,6 +492,80 @@ class Benchmark:
             max_api_rpm=max_api_rpm,
             config=config,
         )
+
+    @classmethod
+    def make_tableshift_benchmark(
+        cls,
+        task_name: str,
+        *,
+        model: AutoModelForCausalLM | str,
+        tokenizer: AutoTokenizer = None,
+        data_dir: str | Path = None,
+        max_api_rpm: int = None,
+        config: BenchmarkConfig = BenchmarkConfig.default_config(),
+        **kwargs,
+    ) -> Benchmark:
+        """Create a standardized calibration benchmark on ACS data.
+
+        Parameters
+        ----------
+        task_name : str
+            The name of the ACS task to use.
+        model : AutoModelForCausalLM | str
+            The transformers language model to use, or the model ID for a webAPI
+            hosted model (e.g., "openai/gpt-4o-mini").
+        tokenizer : AutoTokenizer, optional
+            The tokenizer used to train the model (if using a transformers
+            model). Not required for webAPI models.
+        data_dir : str | Path, optional
+            Path to the directory to load data from and save data in.
+        max_api_rpm : int, optional
+            The maximum number of API requests per minute for webAPI models.
+        config : BenchmarkConfig, optional
+            Extra benchmark configurations, by default will use
+            `BenchmarkConfig.default_config()`.
+        **kwargs
+            Additional arguments passed to `ACSDataset` and `BenchmarkConfig`.
+            By default will use a set of standardized configurations for
+            reproducibility.
+
+        Returns
+        -------
+        bench : Benchmark
+            The ACS calibration benchmark object.
+        """
+        # Handle non-standard ACS arguments
+        tableshift_dataset_configs = cls.TABLESHIFT_DATASET_CONFIGS.copy()
+        for arg in tableshift_dataset_configs:
+            if arg in kwargs and kwargs[arg] != cls.TABLESHIFT_DATASET_CONFIGS[arg]:
+                logging.warning(
+                    f"Received non-standard Tableshift argument '{arg}' (using "
+                    f"{arg}={kwargs[arg]} instead of default {arg}={cls.TABLESHIFT_DATASET_CONFIGS[arg]}). "
+                    f"This may affect reproducibility.")
+                tableshift_dataset_configs[arg] = kwargs.pop(arg)
+
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
+
+        # Fetch ACS task and dataset
+        tableshift_task = TableshiftBRFSSTaskMetadata.get_task(
+            name=task_name,
+            use_numeric_qa=config.numeric_risk_prompting)
+
+        tableshift_dataset = TableshiftBRFSSDataset.make_from_task(
+            task=tableshift_task,
+            cache_dir=data_dir,
+            **tableshift_dataset_configs)
+
+        return cls.make_benchmark(
+            task=tableshift_task,
+            dataset=tableshift_dataset,
+            model=model,
+            tokenizer=tokenizer,
+            max_api_rpm=max_api_rpm,
+            config=config,
+        )
+
 
     @classmethod
     def make_benchmark(
