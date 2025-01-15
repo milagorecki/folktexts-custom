@@ -113,8 +113,8 @@ class TableshiftBRFSSTaskMetadata(TaskMetadata):
         name: str,
         target_threshold: Threshold = None,
         description: str = None,
-        val_size: float = 0.1,  # default in getter
-        test_size: float = 0.25,  # default in getter
+        val_size: float = DEFAULT_VAL_SIZE,  # default in getter
+        test_size: float = DEFAULT_TEST_SIZE,  # default in getter
     ) -> TableshiftBRFSSTaskMetadata:
 
         # Get the task info/object from the tableshift package
@@ -128,9 +128,9 @@ class TableshiftBRFSSTaskMetadata(TaskMetadata):
 
             default_splitter = copy.copy(benchmark_configs.splitter)
             benchmark_configs.splitter = RandomSplitter(
-                val_size=DEFAULT_VAL_SIZE,
+                val_size=val_size,
                 random_state=default_splitter.random_state,
-                test_size=DEFAULT_TEST_SIZE,
+                test_size=test_size,
             )
             task_config = _TASK_REGISTRY[
                 name.lower()
