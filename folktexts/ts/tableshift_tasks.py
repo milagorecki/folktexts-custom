@@ -13,6 +13,7 @@ from ..task import TaskMetadata
 from ..threshold import Threshold
 from . import brfss_columns, brfss_questions
 from .tableshift_thresholds import *
+from ..dataset import DEFAULT_VAL_SIZE, DEFAULT_TEST_SIZE
 
 from tableshift.configs.benchmark_configs import BENCHMARK_CONFIGS, PreprocessorConfig
 from tableshift.configs.experiment_config import ExperimentConfig
@@ -127,9 +128,9 @@ class TableshiftBRFSSTaskMetadata(TaskMetadata):
 
             default_splitter = copy.copy(benchmark_configs.splitter)
             benchmark_configs.splitter = RandomSplitter(
-                val_size=val_size,
+                val_size=DEFAULT_VAL_SIZE,
                 random_state=default_splitter.random_state,
-                test_size=test_size,
+                test_size=DEFAULT_TEST_SIZE,
             )
             task_config = _TASK_REGISTRY[
                 name.lower()
