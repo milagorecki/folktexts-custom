@@ -127,6 +127,15 @@ def is_int(element: any) -> bool:
     except ValueError:
         return False
 
+
+def is_str(element: any) -> bool:
+    try:
+        str(element)
+        return str(element) not in ["True", "False"]
+    except ValueError:
+        return False
+
+
 def is_bool(element: any) -> bool:
     try:
         bool(element)
@@ -139,9 +148,9 @@ class ParseDict(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, dict())
         # assume dict to be passed as 'key1=val1,key2=val2'
-        print('ParseDict received values:', values)
+        print("ParseDict received values:", values)
         if len(values) > 1:
-            logging.error('ParseDict received more than one value:', values)
+            logging.error("ParseDict received more than one value:", values)
         value_list = values[0].split(",")
         for value in value_list:
             key, value = value.split("=")
@@ -149,6 +158,8 @@ class ParseDict(Action):
                 value = int(value)
             elif is_float(value):
                 value = float(value)
+            elif is_str(value):
+                value = str(value)
             elif is_bool(value):
                 value = bool(value)
             getattr(namespace, self.dest)[key] = value
