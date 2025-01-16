@@ -14,7 +14,7 @@ tableshift_physical_health = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
 )
 
-logging.warning(
+logging.debug(
     "Value map encoding following tableshift encoding. Note, that inconsistent with other features, 1.0 corresponds to 'No' and 2.0 corresponds to 'Yes'."
 )
 tableshift_high_blood_pressure = ColumnToText(
@@ -70,7 +70,7 @@ tableshift_chol_chk_past_5_years = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
 )
 
-logging.warning("Encoding value map keys of 'TOLDHI' as strings.")
+logging.debug("Encoding value map keys of 'TOLDHI' as strings.")
 tableshift_told_hi = ColumnToText(
     name="TOLDHI",
     short_description="ever been told to have high blood cholesterol",
@@ -113,7 +113,7 @@ tableshift_smoke100 = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
 )
 
-logging.warning("Encoding value map keys of 'SMOKDAY2' as strings.")
+logging.debug("Encoding value map keys of 'SMOKDAY2' as strings.")
 tableshift_smokday2 = ColumnToText(
     name="SMOKDAY2",
     short_description="currently smoking cigarettes every day, some days, or not at all",
@@ -341,7 +341,7 @@ def parse_state(val):
         72.0: "Puerto Rico",
     }
     if val not in state_dict.keys():
-        logging.warning("Could not find FIPS code for state in dictionary.")
+        logging.debug("Could not find FIPS code for state in dictionary.")
         return "N/A"
     else:
         return state_dict[int(val)]
@@ -382,7 +382,7 @@ tableshift_prace1 = ColumnToText(
     missing_value_fill="N/A (refused or no preferred race)",
 )
 
-logging.warning("SEX encoded with integers 0/1, inconsistent to rest.")
+logging.debug("SEX encoded with integers 0/1, inconsistent to rest.")
 tableshift_sex = ColumnToText(
     name="SEX",
     short_description="gender",
@@ -393,7 +393,7 @@ tableshift_sex = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
 )
 
-logging.warning(
+logging.debug(
     "DIABETES recoded for BRFSS Diabetes Task to a binary indicator, apdapt if using for another task."
 )
 tableshift_diabetes = ColumnToText(
@@ -496,7 +496,7 @@ tableshift_chcocncr = ColumnToText(
 )
 
 
-logging.warning(
+logging.debug(
     "POVERTY columns gets overwritten in tableshift preprocessing using INCOME and a slightly lower threshold of $25,000."
 )
 tableshift_poverty = ColumnToText(
