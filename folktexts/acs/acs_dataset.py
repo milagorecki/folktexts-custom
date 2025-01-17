@@ -88,7 +88,7 @@ class ACSDataset(Dataset):
         task_obj = ACSTaskMetadata.get_task(task) if isinstance(task, str) else task
 
         # Load ACS data source
-        print("Loading ACS data...")
+        logging.info("Loading ACS data...")
         data_source = ACSDataSource(
             survey_year=survey_year, horizon=horizon, survey=survey,
             root_dir=cache_dir.as_posix(),
