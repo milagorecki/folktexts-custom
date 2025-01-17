@@ -81,7 +81,7 @@ class TableshiftBRFSSDataset(Dataset):
             if isinstance(task, str)
             else task
         )
-        print("task_obj", task_obj.tableshift_obj.__dict__)
+        logging.debug(f"task_obj : {task_obj.tableshift_obj.__dict__}")
 
         # Create "folktables" sub-folder under the given cache dir
         cache_dir = (
@@ -99,7 +99,7 @@ class TableshiftBRFSSDataset(Dataset):
         csv_file = cache_dir / f"{task_obj.name.lower()}_all.csv"
         pickle_file = cache_dir / f"{task_obj.name.lower()}.pickle"
         if csv_file.exists():
-            print("Loading TableShift task data from cache...")
+            logging.info("Loading TableShift task data from cache...")
             logging.warning("Assuming dataset is preprocessed as wanted.")
             df = pd.read_csv(csv_file.as_posix(), index_col=0)
             # with open(cache_dir / f"{task_obj.name}.pickle", "rb") as f:
@@ -111,7 +111,7 @@ class TableshiftBRFSSDataset(Dataset):
                 )
             else:
                 # Load ACS data source
-                print("Loading TableShift task data (may take a while)...")
+                logging.info("Loading TableShift task data (may take a while)...")
                 tab_dataset = get_iid_dataset(
                     task_obj.name.lower(),
                     cache_dir=cache_dir,
