@@ -364,20 +364,25 @@ tableshift_medcost = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
 )
 
+logging.debug(
+    "PRACE1 encoded with mix of integers and floats due to grouping by some tasks, inconsistent to rest."
+)
 tableshift_prace1 = ColumnToText(
     name="PRACE1",
     short_description="preferred race category",
     value_map={
-        1: "White",
-        2: "Black or African American",
-        3: "American Indian or Alaskan Native",
-        4: "Asian",
-        5: "Native Hawaiian or other Pacific Islander",
-        6: "Other race",
-        7: "No preferred race",  ##na_value
-        8: "Multiracial, but preferred race not answered",  ##na_value
-        77: "Don’t know/Not sure",  ##na_value
-        9: "Refused",
+        0: "Non-White",  # added for BRFSS Blood Pressure (Grouper turns race into int)
+        1: "White",  # added for BRFSS Blood Pressure (Grouper turns race into int)
+        1.0: "White",
+        2.0: "Black or African American",
+        3.0: "American Indian or Alaskan Native",
+        4.0: "Asian",
+        5.0: "Native Hawaiian or other Pacific Islander",
+        6.0: "Other race",
+        7.0: "No preferred race",  ##na_value
+        8.0: "Multiracial, but preferred race not answered",  ##na_value
+        77.0: "Don’t know/Not sure",  ##na_value
+        9.0: "Refused",
     },
     missing_value_fill="N/A (refused or no preferred race)",
 )
@@ -503,8 +508,8 @@ tableshift_poverty = ColumnToText(
     name="POVERTY",
     short_description="binary indicator of whether individual's income falls below 2021 poverty guideline for a family of four",
     value_map={
-        "1": "Yes",
-        "0": "No",
+        1: "Yes",
+        0: "No",
     },
 )
 

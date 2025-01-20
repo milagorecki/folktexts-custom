@@ -20,7 +20,6 @@ DEFAULT_TEST_SIZE = 0.1
 DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
 
-from tableshift.core.data_source import BRFSSDataSource
 from tableshift import get_iid_dataset
 
 
