@@ -148,7 +148,7 @@ class ParseDict(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, dict())
         # assume dict to be passed as 'key1=val1,key2=val2'
-        print("ParseDict received values:", values)
+        logging.debug("ParseDict received values:", values)
         if len(values) > 1:
             logging.error("ParseDict received more than one value:", values)
         value_list = values[0].split(",")
