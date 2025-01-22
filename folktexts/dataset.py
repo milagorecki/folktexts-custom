@@ -7,6 +7,7 @@ TODO
     - Maybe the Dataset should simply receive the `task` object whenever a
     method needs it.
 """
+
 from __future__ import annotations
 
 import logging
@@ -58,13 +59,11 @@ class Dataset:
         # Validate task
         if not isinstance(self._task, TaskMetadata):
             raise ValueError(
-                f"Invalid `task` type: {type(self._task)}. "
-                f"Expected `TaskMetadata`.")
+                f"Invalid `task` type: {type(self._task)}. " f"Expected `TaskMetadata`."
+            )
 
         # Validate data for this task
-        task.check_task_columns_are_available(
-            available_cols=data.columns.to_list()
-        )
+        task.check_task_columns_are_available(available_cols=data.columns.to_list())
 
         self._test_size = test_size
         self._val_size = val_size or 0
@@ -77,7 +76,8 @@ class Dataset:
         # Make train/test/val split
         self._train_indices, self._test_indices, self._val_indices = (
             self._make_train_test_val_split(
-                self._data, self.test_size, self.val_size, self._rng)
+                self._data, self.test_size, self.val_size, self._rng
+            )
         )
 
         # Subsample the train/test/val data (if requested)
@@ -92,9 +92,7 @@ class Dataset:
     @data.setter
     def data(self, new_data: pd.DataFrame) -> pd.DataFrame:
         # Check if task columns are in the data
-        self.task.check_task_columns_are_available(
-            new_data.columns.to_list()
-        )
+        self.task.check_task_columns_are_available(new_data.columns.to_list())
 
         # Update data
         self._data = new_data
@@ -102,7 +100,8 @@ class Dataset:
         # Reset train/test/val indices
         self._train_indices, self._test_indices, self._val_indices = (
             self._make_train_test_val_split(
-                self._data, self.test_size, self.val_size, self._rng)
+                self._data, self.test_size, self.val_size, self._rng
+            )
         )
 
         # Set subsampling to None
@@ -118,9 +117,7 @@ class Dataset:
     @task.setter
     def task(self, new_task: TaskMetadata):
         # Check if task columns are in the data
-        new_task.check_task_columns_are_available(
-            self.data.columns.to_list()
-        )
+        new_task.check_task_columns_are_available(self.data.columns.to_list())
         self._task = new_task
 
     @property
@@ -146,7 +143,9 @@ class Dataset:
     @property
     def name(self) -> str:
         """A unique name for this dataset."""
-        subsampling_str = f"subsampled-{self.subsampling:.3}" if self.subsampling else "full"
+        subsampling_str = (
+            f"subsampled-{self.subsampling:.3}" if self.subsampling else "full"
+        )
         seed_str = f"seed-{self._seed}"
         hash_str = f"hash-{hash(self)}"
         return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
@@ -165,13 +164,12 @@ class Dataset:
         train_size = 1 - test_size - val_size
         train_indices = indices[: int(len(indices) * train_size)]
         test_indices = indices[
-            len(train_indices):
-            int(len(indices) * (train_size + test_size))]
+            len(train_indices) : int(len(indices) * (train_size + test_size))
+        ]
 
         # Split val if requested
         if val_size is not None and val_size > 0:
-            val_indices = indices[
-                len(train_indices) + len(test_indices):]
+            val_indices = indices[len(train_indices) + len(test_indices) :]
         else:
             val_indices = None
 
@@ -192,12 +190,12 @@ class Dataset:
         new_train_size = int(len(self._train_indices) * subsampling + 0.5)
         new_test_size = int(len(self._test_indices) * subsampling + 0.5)
 
-        self._train_indices = self._train_indices[: new_train_size]
-        self._test_indices = self._test_indices[: new_test_size]
+        self._train_indices = self._train_indices[:new_train_size]
+        self._test_indices = self._test_indices[:new_test_size]
 
         if self._val_indices is not None:
             new_val_size = int(len(self._val_indices) * subsampling + 0.5)
-            self._val_indices = self._val_indices[: new_val_size]
+            self._val_indices = self._val_indices[:new_val_size]
 
         # Log new dataset size
         msg = (
@@ -231,27 +229,37 @@ class Dataset:
         if not isinstance(population_feature_values, dict):
             raise ValueError(
                 f"Invalid `population_feature_values` type: "
-                f"{type(population_feature_values)}.")
+                f"{type(population_feature_values)}."
+            )
 
         # Check argument keys are valid columns
-        if not all(key in self.data.columns for key in population_feature_values.keys()):
+        if not all(
+            key in self.data.columns for key in population_feature_values.keys()
+        ):
             raise ValueError(
                 f"Invalid `population_feature_values` keys; columns don't exist "
-                f"in the dataset: {list(population_feature_values.keys())}.")
+                f"in the dataset: {list(population_feature_values.keys())}."
+            )
 
         # Create boolean filter based on the given feature values
         population_filter = pd.Series(True, index=self.data.index)
         for key, value in population_feature_values.items():
-            population_filter &= (self.data[key] == value)
+            population_filter &= self.data[key] == value
 
         # Update train/test/val indices
         train_pop_filter = population_filter.iloc[self._train_indices]
         test_pop_filter = population_filter.iloc[self._test_indices]
-        val_pop_filter = population_filter.iloc[self._val_indices] if self._val_indices is not None else None
+        val_pop_filter = (
+            population_filter.iloc[self._val_indices]
+            if self._val_indices is not None
+            else None
+        )
 
         self._train_indices = self._train_indices[train_pop_filter]
         self._test_indices = self._test_indices[test_pop_filter]
-        self._val_indices = self._val_indices[val_pop_filter] if self._val_indices is not None else None
+        self._val_indices = (
+            self._val_indices[val_pop_filter] if self._val_indices is not None else None
+        )
 
         return self
 
@@ -317,16 +325,21 @@ class Dataset:
             if min(counts) < per_label_n:
                 logging.error(
                     f"Labels are very imbalanced: Attempting to sample {per_label_n}, "
-                    f"but minimal group size is {min(counts)}.")
+                    f"but minimal group size is {min(counts)}."
+                )
 
             example_indices = []
             for i, label in enumerate(unique_labels):
                 class_indices = self._train_indices[train_labels == label]
 
                 if reuse_examples:
-                    selected = class_indices[:per_label_n + int(i < remaining)]
+                    selected = class_indices[: per_label_n + int(i < remaining)]
                 else:
-                    selected = self._rng.choice(class_indices, size=per_label_n + int(i < remaining), replace=False)
+                    selected = self._rng.choice(
+                        class_indices,
+                        size=per_label_n + int(i < remaining),
+                        replace=False,
+                    )
                 example_indices.extend(selected)
 
             # shuffle indices to ensure classes are mixed
@@ -335,12 +348,14 @@ class Dataset:
             if reuse_examples:
                 example_indices = self._train_indices[:n]
             else:
-                example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+                example_indices = self._rng.choice(
+                    self._train_indices, size=n, replace=False
+                )
 
-        return (
-            self.data.iloc[example_indices][self.task.features],
-            self.data.iloc[example_indices][self.task.get_target()],
-        )
+            return (
+                self.data.iloc[example_indices][self.task.features],
+                self.data.iloc[example_indices][self.task.get_target()],
+            )
 
     def get_test(self):
         test_data = self.data.iloc[self._test_indices]
