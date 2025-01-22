@@ -249,7 +249,7 @@ def main():
     # Prepare command-line arguments
     models_dir = DEFAULT_MODELS_DIR if not args.models_dir else args.models_dir
     models = args.model or LLM_MODELS
-    tasks = args.task or tasks
+    tasks = args.task or TASKS
     executable_path = Path(args.executable_path).resolve()
     if not executable_path.exists() or not executable_path.is_file():
         raise FileNotFoundError(f"Executable script not found at '{executable_path}'.")
