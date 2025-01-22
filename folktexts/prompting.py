@@ -4,6 +4,7 @@ e.g.,
 - multiple-choice Q&A vs direct numeric Q&A;
 - zero-shot vs few-shot vs CoT;
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,13 +37,14 @@ The data provided is enough to reach an approximate answer for each person.
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
 
+
 def serialize_row(
     row: pd.Series,
     task: TaskMetadata,
-    format: str = 'bullet',
+    format: str = "bullet",
     connector: str = "is",
     standardized_sentence=True,
-    **kwargs
+    **kwargs,
 ):
     logging.warn(f"{kwargs} are currently ignored.")
     if format == "bullet":
@@ -63,7 +65,9 @@ def serialize_row(
                     (
                         f"The {task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col][val]}."
                         if standardized_sentence
-                        else task.cols_to_text[col]._verbalize(task.cols_to_text[col][val])
+                        else task.cols_to_text[col]._verbalize(
+                            task.cols_to_text[col][val]
+                        )
                     )
                     for (col, val) in row.items()
                 ]
@@ -74,6 +78,7 @@ def serialize_row(
         raise NotImplementedError(
             f"Style not implemented, currently only 'bullet' list and 'text' are supported, received '{format}'."
         )
+
 
 def encode_row_prompt(
     row: pd.Series,
@@ -157,7 +162,7 @@ def encode_row_prompt_few_shot(
                 task=task,
                 add_task_description=False,
                 custom_prompt_prefix=custom_prompt_prefix,
-                prompt_style = prompt_style,
+                prompt_style=prompt_style,
             )
             + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
@@ -170,7 +175,7 @@ def encode_row_prompt_few_shot(
         add_task_description=False,
         custom_prompt_prefix=custom_prompt_prefix,
         question=question,
-        prompt_style = prompt_style,
+        prompt_style=prompt_style,
     )
     return prompt
 
@@ -189,10 +194,7 @@ def encode_row_prompt_chat(
 
     return apply_chat_template(
         tokenizer,
-        (
-            SYSTEM_PROMPT
-            + encode_row_prompt(row, task, question=question)
-        ),
+        (SYSTEM_PROMPT + encode_row_prompt(row, task, question=question)),
         **chat_template_kwargs,
     )
 
@@ -205,9 +207,9 @@ def apply_chat_template(
     **kwargs,
 ) -> str:
     # Add system prompt
-    conversation = ([
-        {"role": "system", "content": system_prompt}
-    ] if system_prompt else [])
+    conversation = (
+        [{"role": "system", "content": system_prompt}] if system_prompt else []
+    )
 
     # Add user prompt
     conversation.append({"role": "user", "content": user_prompt})
