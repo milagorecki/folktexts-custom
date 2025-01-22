@@ -288,6 +288,7 @@ class Dataset:
         self,
         n: int,
         reuse_examples: bool = False,
+        class_balancing: bool = False,
     ) -> tuple[pd.DataFrame, pd.Series]:
         """Return a set of samples from the training set.
 
@@ -304,16 +305,37 @@ class Dataset:
         X, y : tuple[pd.DataFrame, pd.Series]
             The features and target data for the sampled examples.
         """
-        # TODO: make sure examples are class-balanced?
-        if reuse_examples:
-            example_indices = self._train_indices[:n]
-        else:
-            example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+        if class_balancing:
+            logging.warning('Assuming binary labels.')
+            train_labels = self.get_target_data().iloc[self._train_indices]
+            pos_train_indices = train_labels[train_labels == 1].index
+            neg_train_indices = train_labels[train_labels == 0].index
+            # if n odd, how to split?
+            pos_n = n // 2
+            neg_n = n - pos_n
+            if reuse_examples:
+                pos_example_indices = pos_train_indices[:pos_n]
+                neg_example_indices = neg_train_indices[:neg_n]
+            else:
+                pos_example_indices = self._rng.choice(pos_train_indices, size=pos_n, replace=False)
+                neg_example_indices = self._rng.choice(neg_train_indices, size=neg_n, replace=False)
+            # permute examples to not have positve and negative examples separated
+            #TODO: check if changing the order affects performance
+            example_indices = self._rng.permutation(np.concatenate([pos_example_indices, neg_example_indices]))
+            return ( #for some reason loc instead of iloc needed here
+                self.data.loc[example_indices][self.task.features],
+                self.data.loc[example_indices][self.task.get_target()],
+            )
+        else: 
+            if reuse_examples:
+                example_indices = self._train_indices[:n]
+            else:
+                example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
 
-        return (
-            self.data.iloc[example_indices][self.task.features],
-            self.data.iloc[example_indices][self.task.get_target()],
-        )
+            return (
+                self.data.iloc[example_indices][self.task.features],
+                self.data.iloc[example_indices][self.task.get_target()],
+            )
 
     def get_test(self):
         test_data = self.data.iloc[self._test_indices]
