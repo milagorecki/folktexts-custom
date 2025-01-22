@@ -13,10 +13,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number, get_current_timestamp
-from .acs.acs_dataset import ACSDataset
-from .acs.acs_tasks import ACSTaskMetadata
-from .ts.brfss_dataset import TableshiftBRFSSDataset
-from .ts.tableshift_tasks import TableshiftBRFSSTaskMetadata
+from .acs import ACSDataset, ACSTaskMetadata
+from .ts import TableshiftBRFSSDataset, TableshiftBRFSSTaskMetadata
 from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
