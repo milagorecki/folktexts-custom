@@ -86,12 +86,12 @@ LLM_MODELS = [
     "01-ai/Yi-34B-Chat",
 
     # Qwen2 models
-    # "Qwen/Qwen2-1.5B",
-    # "Qwen/Qwen2-1.5B-Instruct",
-    # "Qwen/Qwen2-7B",
-    # "Qwen/Qwen2-7B-Instruct",
-    # "Qwen/Qwen2-72B",
-    # "Qwen/Qwen2-72B-Instruct",
+    "Qwen/Qwen2-1.5B",
+    "Qwen/Qwen2-1.5B-Instruct",
+    "Qwen/Qwen2-7B",
+    "Qwen/Qwen2-7B-Instruct",
+    "Qwen/Qwen2-72B",
+    "Qwen/Qwen2-72B-Instruct",
 ]
 
 
