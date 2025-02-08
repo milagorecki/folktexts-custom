@@ -306,26 +306,30 @@ class Dataset:
             The features and target data for the sampled examples.
         """
         if class_balancing:
-            logging.warning('Assuming binary labels.')
+
             train_labels = self.get_target_data().iloc[self._train_indices]
-            pos_train_indices = train_labels[train_labels == 1].index
-            neg_train_indices = train_labels[train_labels == 0].index
-            # if n odd, how to split?
-            pos_n = n // 2
-            neg_n = n - pos_n
-            if reuse_examples:
-                pos_example_indices = pos_train_indices[:pos_n]
-                neg_example_indices = neg_train_indices[:neg_n]
-            else:
-                pos_example_indices = self._rng.choice(pos_train_indices, size=pos_n, replace=False)
-                neg_example_indices = self._rng.choice(neg_train_indices, size=neg_n, replace=False)
-            # permute examples to not have positve and negative examples separated
-            #TODO: check if changing the order affects performance
-            example_indices = self._rng.permutation(np.concatenate([pos_example_indices, neg_example_indices]))
-            return ( #for some reason loc instead of iloc needed here
-                self.data.loc[example_indices][self.task.features],
-                self.data.loc[example_indices][self.task.get_target()],
-            )
+            unique_labels, counts = np.unique(train_labels, return_counts=True)
+            
+
+            per_label_n = n // len(unique_labels)
+            remaining = n % len(unique_labels) # distribute extra samples
+
+            if min(counts) < per_label_n:  
+                logging.error(f'Labels are very imbalanced: Attempting to sample {per_label_n}, 
+                              but minimal group size is {min(counts)}.')
+
+            example_indices = []
+            for i, label in enumerate(unique_labels):
+                class_indices = self._train_indices[train_labels == label]
+
+                if reuse_examples:
+                    selected = class_indices[:per_label_n + int(i < remaining)]
+                else: 
+                    selected = self._rng.choice(class_indices, size=per_label_n + int(i < remaining), replace=False)
+                example_indices.extend(selected)
+
+            # shuffle indices to ensure classes are mixed
+            example_indices = self._rng.permutation(example_indices)
         else: 
             if reuse_examples:
                 example_indices = self._train_indices[:n]
