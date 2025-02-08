@@ -209,6 +209,8 @@ def main():
         subsampling=args.subsampling,
         max_api_rpm=args.max_api_rpm,
         )
+    else:
+        raise ValueError(f"Unknown task name: {args.task}")
     # Set-up results directory
     from folktexts.cli._utils import get_or_create_results_dir
     results_dir = get_or_create_results_dir(
