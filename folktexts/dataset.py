@@ -347,7 +347,7 @@ class Dataset:
                     self._train_indices, size=n, replace=False
                 )
 
-            return (
+        return (
                 self.data.iloc[example_indices][self.task.features],
                 self.data.iloc[example_indices][self.task.get_target()],
             )
