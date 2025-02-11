@@ -44,7 +44,8 @@ def serialize_row(
     standardized_sentence=True,
     **kwargs
 ):
-    logging.warning(f"{kwargs} are currently ignored.")
+    if kwargs:
+        logging.warning(f"{kwargs} are currently ignored.")
     if format == "bullet":
         return (
             "\n".join(
