@@ -142,12 +142,10 @@ class Benchmark:
 
     TABLESHIFT_DATASET_CONFIGS = {
         # survey configs should be defined in task
-
         # Data split configs
         "test_size": 0.1,
         "val_size": 0.1,
         "subsampling": None,
-
         # Fixed random seed
         "seed": 42,
     }
@@ -545,21 +543,21 @@ class Benchmark:
                 logging.warning(
                     f"Received non-standard Tableshift argument '{arg}' (using "
                     f"{arg}={kwargs[arg]} instead of default {arg}={cls.TABLESHIFT_DATASET_CONFIGS[arg]}). "
-                    f"This may affect reproducibility.")
+                    f"This may affect reproducibility."
+                )
                 tableshift_dataset_configs[arg] = kwargs.pop(arg)
 
         # Update config with any additional kwargs
         config = config.update(**kwargs)
 
-        # Fetch ACS task and dataset
+        # Fetch Tableshift task and dataset
         tableshift_task = TableshiftBRFSSTaskMetadata.get_task(
-            name=task_name,
-            use_numeric_qa=config.numeric_risk_prompting)
+            name=task_name, use_numeric_qa=config.numeric_risk_prompting
+        )
 
         tableshift_dataset = TableshiftBRFSSDataset.make_from_task(
-            task=tableshift_task,
-            cache_dir=data_dir,
-            **tableshift_dataset_configs)
+            task=tableshift_task, cache_dir=data_dir, **tableshift_dataset_configs
+        )
 
         return cls.make_benchmark(
             task=tableshift_task,
@@ -569,7 +567,6 @@ class Benchmark:
             max_api_rpm=max_api_rpm,
             config=config,
         )
-
 
     @classmethod
     def make_benchmark(
@@ -682,7 +679,7 @@ class Benchmark:
             )
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
-        logging.info('Exemplary row encoding')
+        logging.info("Exemplary row encoding")
         logging.info(llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0]))
 
         return cls(
