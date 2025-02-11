@@ -43,6 +43,9 @@ class BenchmarkConfig:
     reuse_few_shot_examples : bool, optional
         Whether to reuse the same samples for few-shot prompting (or sample new
         ones every time), by default False.
+    balance_few_shot_examples : bool, optional
+        Whether to balance the samples for few-shot prompting with respect to 
+        their labels, by default False.
     batch_size : int | None, optional
         The batch size to use for inference.
     context_size : int | None, optional
@@ -63,6 +66,7 @@ class BenchmarkConfig:
     numeric_risk_prompting: bool = False
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
+    balance_few_shot_examples: bool = False
     batch_size: int | None = None
     context_size: int | None = None
     correct_order_bias: bool = True
@@ -545,7 +549,7 @@ class Benchmark:
         # Update config with any additional kwargs
         config = config.update(**kwargs)
 
-        # Fetch ACS task and dataset
+        # Fetch Tableshift task and dataset
         tableshift_task = TableshiftBRFSSTaskMetadata.get_task(
             name=task_name,
             use_numeric_qa=config.numeric_risk_prompting)
@@ -635,6 +639,7 @@ class Benchmark:
                 n_shots=config.few_shot,
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
+                class_balancing=config.balance_few_shot_examples,
                 prompt_style=config.prompt_style,
                 **kwargs
             )
