@@ -57,10 +57,10 @@ JOB_BID = 500
 # LLMs to evaluate
 LLM_MODELS = [
     # Google Gemma2 models
-    "google/gemma-2b",
-    "google/gemma-1.1-2b-it",
-    "google/gemma-7b",
-    "google/gemma-1.1-7b-it",
+    # "google/gemma-2b",
+    # "google/gemma-1.1-2b-it",
+    # "google/gemma-7b",
+    # "google/gemma-1.1-7b-it",
 
     "google/gemma-2-9b",
     "google/gemma-2-9b-it",
@@ -72,6 +72,15 @@ LLM_MODELS = [
     "meta-llama/Meta-Llama-3-8B-Instruct",
     "meta-llama/Meta-Llama-3-70B",
     "meta-llama/Meta-Llama-3-70B-Instruct",
+    "meta-llama/Meta-Llama-3.1-8B",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "meta-llama/Meta-Llama-3.1-70B",
+    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    "meta-llama/Meta-Llama-3.2-1B",
+    "meta-llama/Meta-Llama-3.2-1B-Instruct",
+    "meta-llama/Meta-Llama-3.2-3B",
+    "meta-llama/Meta-Llama-3.2-3B-Instruct",
+    "meta-llama/Meta-Llama-3.3-70B-Instruct",
 
     # Mistral AI models
     "mistralai/Mistral-7B-v0.1",
@@ -92,6 +101,10 @@ LLM_MODELS = [
     "Qwen/Qwen2-7B-Instruct",
     "Qwen/Qwen2-72B",
     "Qwen/Qwen2-72B-Instruct",
+    "Qwen/Qwen2.5-7B",
+    "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen/Qwen2.5-72B",
+    "Qwen/Qwen2.5-72B-Instruct",
 ]
 
 
