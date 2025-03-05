@@ -82,6 +82,18 @@ LLM_MODELS = [
     "meta-llama/Meta-Llama-3.2-3B-Instruct",
     "meta-llama/Meta-Llama-3.3-70B-Instruct",
 
+    "meta-llama/Meta-Llama-3.1-8B",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "meta-llama/Meta-Llama-3.1-70B",
+    "meta-llama/Meta-Llama-3.1-70B-Instruct",
+
+    "meta-llama/Meta-Llama-3.2-1B",
+    "meta-llama/Meta-Llama-3.2-1B-Instruct",
+    "meta-llama/Meta-Llama-3.2-3B",
+    "meta-llama/Meta-Llama-3.2-3B-Instruct",
+
+    "meta-llama/Meta-Llama-3.3-70B-Instruct",
+
     # Mistral AI models
     "mistralai/Mistral-7B-v0.1",
     "mistralai/Mistral-7B-Instruct-v0.2",
@@ -89,22 +101,37 @@ LLM_MODELS = [
     "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "mistralai/Mixtral-8x22B-v0.1",
     "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    
+    "mistralai/Mistral-Small-24B-Base-2501",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
 
     # Yi models
+    "01-ai/Yi-6B",
+    "01-ai/Yi-6B-Chat",
     "01-ai/Yi-34B",
     "01-ai/Yi-34B-Chat",
 
     # Qwen2 models
-    "Qwen/Qwen2-1.5B",
-    "Qwen/Qwen2-1.5B-Instruct",
+    # "Qwen/Qwen2-1.5B",
+    # "Qwen/Qwen2-1.5B-Instruct",
     "Qwen/Qwen2-7B",
     "Qwen/Qwen2-7B-Instruct",
     "Qwen/Qwen2-72B",
     "Qwen/Qwen2-72B-Instruct",
+    
     "Qwen/Qwen2.5-7B",
     "Qwen/Qwen2.5-7B-Instruct",
     "Qwen/Qwen2.5-72B",
     "Qwen/Qwen2.5-72B-Instruct",
+
+    #OLMo models
+    "allenai/OLMo-1B-0724-hf",
+    "allenai/OLMo-1B-hf",
+    "allenai/OLMo-7B-0724-hf",
+    "allenai--OLMo-7B-hf",
+    "allenai--OLMo-7B-Instruct-hf",
+    "allenai/OLMo-2-1124-7B", 
+    "allenai/OLMo-2-1124-7B-Instruct", 
 ]
 
 
