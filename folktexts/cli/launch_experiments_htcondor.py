@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Launch htcondor jobs for all benchmark experiments.
-Usage: 
-    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_acs_benchmark.py --results-dir './results/test/' --task ACSIncome --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is' 
-    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_tableshift_benchmark.py --results-dir './results/test/' --task BRFSS_Diabetes --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is' 
+Usage:
+    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_acs_benchmark.py --results-dir './results/test/' --task ACSIncome --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is'
+    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_tableshift_benchmark.py --results-dir './results/test/' --task BRFSS_Diabetes --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is'
 """
 import argparse
 import math
@@ -25,7 +25,7 @@ ACS_TASKS = (
     "ACSPublicCoverage",
 )
 TABLESHIFT_TASKS = (
-    "BRFSS_Diabetes",   
+    "BRFSS_Diabetes",
     "BRFSS_Blood_Pressure",
 )
 TASKS = ACS_TASKS + TABLESHIFT_TASKS
@@ -41,7 +41,7 @@ ACS_DATA_DIR = ROOT_DIR / "data"
 TABLESHIFT_DATA_DIR = Path("/fast/mgorecki/monoculture/data")
 
 # Models save directory
-DEFAULT_MODELS_DIR = ROOT_DIR /"huggingface-models" #Path('/fast/rolmedo/') / 'models' 
+DEFAULT_MODELS_DIR = ROOT_DIR / "huggingface-models"  # Path('/fast/rolmedo/') / 'models'
 
 
 ##################
@@ -57,10 +57,10 @@ JOB_BID = 500
 # LLMs to evaluate
 LLM_MODELS = [
     # Google Gemma2 models
-    # "google/gemma-2b",
-    # "google/gemma-1.1-2b-it",
-    # "google/gemma-7b",
-    # "google/gemma-1.1-7b-it",
+    "google/gemma-2b",
+    "google/gemma-1.1-2b-it",
+    "google/gemma-7b",
+    "google/gemma-1.1-7b-it",
 
     "google/gemma-2-9b",
     "google/gemma-2-9b-it",
@@ -101,7 +101,7 @@ LLM_MODELS = [
     "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "mistralai/Mixtral-8x22B-v0.1",
     "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    
+
     "mistralai/Mistral-Small-24B-Base-2501",
     "mistralai/Mistral-Small-24B-Instruct-2501",
 
@@ -118,20 +118,20 @@ LLM_MODELS = [
     "Qwen/Qwen2-7B-Instruct",
     "Qwen/Qwen2-72B",
     "Qwen/Qwen2-72B-Instruct",
-    
+
     "Qwen/Qwen2.5-7B",
     "Qwen/Qwen2.5-7B-Instruct",
     "Qwen/Qwen2.5-72B",
     "Qwen/Qwen2.5-72B-Instruct",
 
-    #OLMo models
+    # OLMo models
     "allenai/OLMo-1B-0724-hf",
     "allenai/OLMo-1B-hf",
     "allenai/OLMo-7B-0724-hf",
     "allenai--OLMo-7B-hf",
     "allenai--OLMo-7B-Instruct-hf",
-    "allenai/OLMo-2-1124-7B", 
-    "allenai/OLMo-2-1124-7B-Instruct", 
+    "allenai/OLMo-2-1124-7B",
+    "allenai/OLMo-2-1124-7B-Instruct",
 ]
 
 
@@ -173,13 +173,13 @@ def make_llm_clf_experiment(
     experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix() if task in ACS_TASKS else TABLESHIFT_DATA_DIR.as_posix())
     # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
-    if "use_feature_subset" in kwargs: 
+    if "use_feature_subset" in kwargs:
         feature_subset = kwargs["use_feature_subset"].split(",")
         task_with_subset = f"{task}_" + "_".join(sorted(feature_subset))
 
     results_dir = get_or_create_results_dir(
         model_name=model_name,
-        task_name=task if not "use_feature_subset" in kwargs else task_with_subset,
+        task_name=task if "use_feature_subset" not in kwargs else task_with_subset,
         results_root_dir=results_dir,
     )
     logging.info(f"Updated results_dir to {results_dir.as_posix()}")
