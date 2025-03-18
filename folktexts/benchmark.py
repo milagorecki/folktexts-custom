@@ -308,6 +308,7 @@ class Benchmark:
             elif not is_valid_number(fit_threshold) or fit_threshold <= 0:
                 raise ValueError(f"Invalid fit_threshold={fit_threshold}")
 
+            self.llm_clf._threshold_fitted_on = fit_threshold
             logging.info(f"Fitting threshold on {fit_threshold} train samples")
             X_train, y_train = self.dataset.sample_n_train_examples(fit_threshold)
             self.llm_clf.fit(X_train, y_train)
@@ -321,6 +322,9 @@ class Benchmark:
             model_name=self.llm_clf.model_name,
         )
 
+        if fit_threshold and is_valid_number(fit_threshold) and fit_threshold > 0:
+            self._results["threshold_fitted_on"] = fit_threshold
+            
         if self.task.sensitive_attribute is not None:
             self._results["sensitive_attribute"] = self.task.sensitive_attribute
 

@@ -90,6 +90,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         )
 
         self._threshold = threshold
+        self._threshold_fitted_on = 0
         self._correct_order_bias = correct_order_bias
         self._seed = seed
 
