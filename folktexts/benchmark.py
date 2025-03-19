@@ -1,5 +1,4 @@
-"""A benchmark class for measuring and evaluating LLM calibration.
-"""
+"""A benchmark class for measuring and evaluating LLM calibration."""
 
 from __future__ import annotations
 
@@ -323,9 +322,8 @@ class Benchmark:
             model_name=self.llm_clf.model_name,
         )
 
-        if fit_threshold and is_valid_number(fit_threshold) and fit_threshold > 0:
-            self._results["threshold_fitted_on"] = fit_threshold
-            
+        self._results["threshold_fitted_on"] = self.llm_clf._threshold_fitted_on
+
         if self.task.sensitive_attribute is not None:
             self._results["sensitive_attribute"] = self.task.sensitive_attribute
 
