@@ -313,7 +313,8 @@ class Benchmark:
             X_train, y_train = self.dataset.sample_n_train_examples(fit_threshold)
             self.llm_clf.fit(X_train,
                              y_train,
-                             predictions_save_path=self._get_predictions_save_path("train"))
+                             predictions_save_path=self._get_predictions_save_path("train"),
+                             labels=y_train)
 
         # Evaluate test risk scores
         self._results = evaluate_predictions(
