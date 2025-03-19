@@ -290,6 +290,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         # Save to disk if `predictions_save_path` is provided
         if predictions_save_path is not None:
             predictions_save_path = Path(predictions_save_path).with_suffix(".csv")
+            logging.info(f'Saving predictions to {predictions_save_path}')
 
             predictions_df = pd.DataFrame(risk_scores, index=data.index, columns=[SCORE_COL_NAME])
             predictions_df[LABEL_COL_NAME] = labels
