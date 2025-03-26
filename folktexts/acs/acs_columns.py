@@ -100,7 +100,7 @@ acs_occupation = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "OCCP.txt",
-        postprocess=lambda x: x[4:].lower().capitalize().strip(),
+        postprocess=lambda x: x.split("-", 1)[1] if len(x.split("-", 1)) == 2 else x.split("-", 1)[0],
     ),
     verbalize=lambda x: f"The person's occupation is '{x}'.",
 )
