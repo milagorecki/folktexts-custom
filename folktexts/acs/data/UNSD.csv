@@ -1,4 +1,5 @@
-﻿Global Code;Global Name;Region Code;Region Name;Sub-region Code;Sub-region Name;Intermediate Region Code;Intermediate Region Name;Country or Area;M49 Code;ISO-alpha2 Code;ISO-alpha3 Code;Least Developed Countries (LDC);Land Locked Developing Countries (LLDC);Small Island Developing States (SIDS)
+﻿# downloaded from: https://unstats.un.org/unsd/methodology/m49/overview/#
+Global Code;Global Name;Region Code;Region Name;Sub-region Code;Sub-region Name;Intermediate Region Code;Intermediate Region Name;Country or Area;M49 Code;ISO-alpha2 Code;ISO-alpha3 Code;Least Developed Countries (LDC);Land Locked Developing Countries (LLDC);Small Island Developing States (SIDS)
 001;World;150;Europe;151;Eastern Europe;;;Belarus;112;BY;BLR;;;
 001;World;150;Europe;151;Eastern Europe;;;Bulgaria;100;BG;BGR;;;
 001;World;150;Europe;151;Eastern Europe;;;Czechia;203;CZ;CZE;;;
