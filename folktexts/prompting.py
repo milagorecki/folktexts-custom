@@ -215,6 +215,9 @@ def get_valid_keys(cls):
     return _valid_keys_cache[cls]
 
 
+_building_blocks_cache = []
+
+
 def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
@@ -225,6 +228,7 @@ def encode_row_prompt(
     prompt_variation: dict | None = None,
 ) -> str:
     """Encode a question regarding a given row."""
+    global _building_blocks_cache
     # ensure only feature defined for the task are used
     row = row[task.features]
     # Get the question to ask
@@ -244,28 +248,29 @@ def encode_row_prompt(
 
         return cls(task=task, **filtered_kwargs)
 
-    building_blocks = [
-        use_variation(
-            VaryPrefix,
-            {
-                "add_task_description": add_task_description,
-                "custom_prompt_prefix": custom_prompt_prefix,
-            },
-        ),
-        use_variation(
-            VarySuffix,
-            {
-                "question": question,
-                "custom_prompt_suffix": custom_prompt_suffix,
-            },
-        ),
-        # order of value map, connector and format should not be changed
-        use_variation(VaryValueMap, {"granularity": "original"}),
-        use_variation(VaryConnector, {"connector": "is"}),
-        use_variation(VaryFormat, {"format": "textbullet"}),
-    ]
+    if len(_building_blocks_cache) == 0:
+        _building_blocks_cache = [
+            use_variation(
+                VaryPrefix,
+                {
+                    "add_task_description": add_task_description,
+                    "custom_prompt_prefix": custom_prompt_prefix,
+                },
+            ),
+            use_variation(
+                VarySuffix,
+                {
+                    "question": question,
+                    "custom_prompt_suffix": custom_prompt_suffix,
+                },
+            ),
+            # order of value map, connector and format should not be changed
+            use_variation(VaryValueMap, {"granularity": "original"}),
+            use_variation(VaryConnector, {"connector": "is"}),
+            use_variation(VaryFormat, {"format": "textbullet"}),
+        ]
 
-    for fun in building_blocks:
+    for fun in _building_blocks_cache:
         row = fun(row)
     return "".join(row.values)
 
