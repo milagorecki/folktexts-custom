@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line.
 Usage:
-    - exemplary: run_acs_benchmark --model gpt2 --results-dir './results/test/' --data-dir '../llm_fairness/folktexts/data' --task ACSIncome --subsampling 0.01 --style "format=bullet,connector=is" --logger-level ERROR
+    - exemplary: run_acs_benchmark --model gpt2 --results-dir './results/test/' --data-dir '../llm_fairness/folktexts/data' --task ACSIncome --subsampling 0.01 --variation "format=bullet,connector=is" --logger-level ERROR
 """
 import json
 import logging
@@ -120,8 +120,8 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--style",
-        help="[dict] Dictionary specifying style of data point serialization.",
+        "--variation",
+        help="[dict] Dictionary specifying variations of data point serialization.",
         nargs="*",
         action=ParseDict,
         required=False,
@@ -173,7 +173,7 @@ def main():
         feature_subset=args.use_feature_subset or None,
         population_filter=population_filter_dict,
         seed=args.seed,
-        prompt_style=args.style if args.style != {} else None,
+        prompt_variation=args.variation if args.variation != {} else None,
     )
 
     # Create ACS Benchmark object

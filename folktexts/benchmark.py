@@ -73,7 +73,7 @@ class BenchmarkConfig:
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
     randomize_feature_order: bool = False
-    prompt_style: dict | None = None
+    prompt_variation: dict | None = None
 
     @classmethod
     def default_config(cls, **changes):
@@ -646,14 +646,14 @@ class Benchmark:
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
                 class_balancing=config.balance_few_shot_examples,
-                prompt_style=config.prompt_style,
+                prompt_variation=config.prompt_variation,
                 **kwargs,
             )
 
         else:
             print("Using zero-shot prompting.")
             encode_row_function = partial(
-                encode_row_prompt, task=task, prompt_style=config.prompt_style, **kwargs
+                encode_row_prompt, task=task, prompt_variation=config.prompt_variation, **kwargs
             )
 
         # Parse LLMClassifier parameters
