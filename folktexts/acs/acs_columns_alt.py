@@ -1,5 +1,4 @@
-"""Module to hold ACS column mappings from values to natural text.
-"""
+"""Module to hold ACS column mappings from values to natural text."""
 
 from functools import partial
 from pathlib import Path
@@ -16,21 +15,31 @@ ACS_CODEBOOK_DIR = Path(__file__).parent / "data"
 
 
 def transform_age(x, bin_width=10, min_age=18, max_age=90):
-    age_bins = np.array([min_age] + [bin_width*i for i in range(min_age//bin_width+1, max_age//bin_width+1)] + [max_age])
+    age_bins = np.array(
+        [min_age]
+        + [
+            bin_width * i
+            for i in range(min_age // bin_width + 1, max_age // bin_width + 1)
+        ]
+        + [max_age]
+    )
     # large enough step after min age
-    if age_bins[1] - age_bins[0] <= bin_width/2:
+    if age_bins[1] - age_bins[0] <= bin_width / 2:
         age_bins = np.concatenate([age_bins[0:1], age_bins[2:]])
     # large enough step to max age
-    if age_bins[-1] - age_bins[-2] <= bin_width/2:
+    if age_bins[-1] - age_bins[-2] <= bin_width / 2:
         age_bins = np.concatenate([age_bins[:-2], age_bins[-1:]])
 
-    print(age_bins)
     if x < age_bins[0]:
         return f"Less than {age_bins[0]} years old"
     elif x >= age_bins[-1]:
         return f"{age_bins[-1]} or more years old"
     else:
-        l, u = [(age_bins[k], age_bins[k+1]-1) for k in range(len(age_bins)) if x >= age_bins[k] and x < age_bins[k+1]][0]
+        l, u = [
+            (age_bins[k], age_bins[k + 1] - 1)
+            for k in range(len(age_bins))
+            if x >= age_bins[k] and x < age_bins[k + 1]
+        ][0]
         return f"{l}-{u} years old"
 
 
@@ -42,7 +51,7 @@ def transform_cow(x):
         8: "Unpaid worker",
         9: "Unemployed or not in the labor force",
     }
-    return simplified_cow_map(map_to_lower_res(x))
+    return simplified_cow_map.get(map_to_lower_res.get(x))
 
 
 def transform_schooling(x):
@@ -84,7 +93,7 @@ def transform_schooling(x):
         23: 10,  # Professional degree -> Graduate or professional degree
         24: 10,  # Doctorate degree -> Graduate or professional degree
     }
-    return simplified_schl_map(map_to_lower_res(x))
+    return simplified_schl_map.get(map_to_lower_res.get(x))
 
 
 def transform_occp(x):
@@ -123,12 +132,12 @@ def transform_occp(x):
             return cat
         else:
             # catch cases in OCCP.txt not following the format
-            if occp.startswith('Engineering'):
-                return 'ENG'
-            elif occp.startswith('Grinding'):
-                return 'PRD'
-            elif occp.startswith('Unemployed'):
-                return 'UNEMPL'
+            if occp.startswith("Engineering"):
+                return "ENG"
+            elif occp.startswith("Grinding"):
+                return "PRD"
+            elif occp.startswith("Unemployed"):
+                return "UNEMPL"
             else:
                 return occp
 
@@ -136,8 +145,8 @@ def transform_occp(x):
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "OCCP.txt",
         postprocess=get_prefix,
-        )
-    return simplified_occp_map.get(map_to_lower_res(x), 'N/A')
+    )
+    return simplified_occp_map.get(map_to_lower_res(x), "N/A")
 
 
 def transform_pobp(x):
@@ -147,134 +156,188 @@ def transform_pobp(x):
         3: "South USA",
         4: "West USA",
         5: "US Territories",
-        6: "Europe",
-        7: "Asia",
-        8: "North America (excluding USA)",
-        9: "Central America & Caribbean",
-        10: "South America",
-        11: "Africa",
-        12: "Oceania",
-        13: "Other/Unspecified",
+        6: "European Union",
+        7: "Europe, non EU",
+        8: "Asia",
+        9: "North America (excluding USA)",
+        10: "Central America & Caribbean",
+        11: "South America",
+        12: "Africa",
+        13: "Oceania",
+        14: "Other/Unspecified",
     }
 
     map_to_lower_res = {
         # Northeast USA
         **{i: 1 for i in [9, 23, 25, 33, 34, 36, 42, 44, 50]},
         # CT, ME, MA, NH, NJ, NY, PA, RI, VT
-
         # Midwest USA
         **{i: 2 for i in [17, 18, 19, 20, 26, 27, 29, 31, 38, 39, 46, 55]},
         # IL, IN, IA, KS, MI, MN, MO, NE, ND, OH, SD, WI
-
         # South USA
-        **{i: 3 for i in [1, 5, 10, 11, 12, 13, 21, 22, 24, 28, 37, 40, 45, 47, 48, 51, 54]},
+        **{
+            i: 3
+            for i in [1, 5, 10, 11, 12, 13, 21, 22, 24, 28, 37, 40, 45, 47, 48, 51, 54]
+        },
         # AL, AR, DE, DC, FL, GA, KY, LA, MD, MS, NC, OK, SC, TN, TX, VA, WV
-
         # West USA
         **{i: 4 for i in [2, 4, 6, 8, 15, 16, 30, 32, 35, 41, 49, 53, 56]},
         # AK, AZ, CA, CO, HI, ID, MT, NV, NM, OR, UT, WA, WY
-
         # US Territories
-        60: 5, 66: 5, 69: 5, 72: 5, 78: 5,  # American Samoa, Guam, N. Mariana Islands, Puerto Rico, US Virgin Islands
-
+        60: 5,
+        66: 5,
+        69: 5,
+        72: 5,
+        78: 5,  # American Samoa, Guam, N. Mariana Islands, Puerto Rico, US Virgin Islands
         # European Union (EU)
-        **{i: 6 for i in [102, 103, 104, 151, 208, 148, 106, 108, 109, 110,
-                          116, 117, 119, 120, 156, 157, 126, 128, 129, 130,
-                          132, 149, 134, 136]},
+        **{
+            i: 6
+            for i in [
+                102,
+                103,
+                104,
+                151,
+                208,
+                148,
+                106,
+                108,
+                109,
+                110,
+                116,
+                117,
+                119,
+                120,
+                156,
+                157,
+                126,
+                128,
+                129,
+                130,
+                132,
+                149,
+                134,
+                136,
+            ]
+        },
         # Austria, Belgium, Bulgaria, Croatia, Cyprus (2016 or earlier), Czech Republic, Denmark,
         # Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania,
         # Netherlands, Poland, Portugal, Azores Islands, Romania, Slovakia, Spain, Sweden
         # missing: Estonia, Luxembourg, Slovenia missing
-
         # Non-EU Europe or unclear
-        **{i: 7 for i in [100, 105, 118, 127, 137, 138, 139, 140, 142, 147,
-                          150, 152, 154, 158, 159, 160, 161, 162, 163, 164,
-                          165, 166, 167, 168, 169]},
+        **{
+            i: 7
+            for i in [
+                100,
+                105,
+                118,
+                127,
+                137,
+                138,
+                139,
+                140,
+                142,
+                147,
+                150,
+                152,
+                154,
+                158,
+                159,
+                160,
+                161,
+                162,
+                163,
+                164,
+                165,
+                166,
+                167,
+                168,
+                169,
+            ]
+        },
         # Albania, Czechoslovakia, Iceland, Norway, Switzerland, United Kingdom, Not Specified, England,
         # Scotland, Northern Ireland (2017 or later), Yugoslavia, Bosnia and Herzegovina, Macedonia,
         # Serbia, Armenia, Azerbaijan, Belarus, Georgia, Moldova, Russia, Ukraine, USSR,
         # Europe (2017 or later), Kosovo (2017 or later), Montenegro, Other Europe, Not Specified
-
         # Asia
         **{i: 8 for i in range(200, 250) if i != 208},  # Asian countries (200-249)
-        253: 8, 254: 8,
-
+        253: 8,
+        254: 8,
         # North America (excluding USA)
-        300: 9, 301: 9, 303: 9,  # Bermuda, Canada, Mexico
-
+        300: 9,
+        301: 9,
+        303: 9,  # Bermuda, Canada, Mexico
         # Central America & Caribbean
         **{i: 10 for i in range(310, 345)},  # Central America & Caribbean (310-344)
-
         # South America
         **{i: 11 for i in range(360, 375)},  # South America (360-374)
-
         # Africa
         **{i: 12 for i in range(400, 470)},  # Africa (400-469)
         462: 14,
-
         # Oceania
         **{i: 13 for i in range(501, 528)},  # Australia, New Zealand, Pacific Islands
-
         # Other / Unspecified
-        399: 14, 554: 14,  # Misc. unspecified regions
+        399: 14,
+        554: 14,  # Misc. unspecified regions
     }
 
-    return simplified_pobp_map.get(map_to_lower_res.get(x, 13))
+    return simplified_pobp_map.get(map_to_lower_res.get(x, 14))
 
 
 def transform_pobp_unsd(x):
     original_value_map = acs_place_of_birth.value_map
-    unsd_data = pd.read_csv(ACS_CODEBOOK_DIR / 'UNSD.csv', sep=';')
+    unsd_data = pd.read_csv(ACS_CODEBOOK_DIR / "UNSD.csv", sep=";")
 
     manually_matched_area_names = {
-            'Commonwealth of the Northern Mariana Islands': 'Northern Mariana Islands',
-            'US Virgin Islands': 'United States Virgin Islands',
-            'Azores Islands': 'Portugal',
-            'United Kingdom, Not Specified': 'United Kingdom of Great Britain and Northern Ireland',
-            'England': 'United Kingdom of Great Britain and Northern Ireland',
-            'Scotland': 'United Kingdom of Great Britain and Northern Ireland',
-            'Czech Republic': 'Czechia',
-            'Laos': "Lao People's Democratic Republic",
-            'Turkey': 'Türkiye',
-            'Vietnam': 'Viet Nam',
-            'St. Kitts-Nevis': 'Saint Kitts and Nevis',
-            'St. Lucia': 'Saint Lucia',
-            'St. Vincent and the Grenadines': 'Saint Vincent and the Grenadines',
-            'Ivory Coast': 'Côte d’Ivoire',
-            'Democratic Republic of Congo': 'Democratic Republic of the Congo',
-        }
+        "Commonwealth of the Northern Mariana Islands": "Northern Mariana Islands",
+        "US Virgin Islands": "United States Virgin Islands",
+        "Azores Islands": "Portugal",
+        "United Kingdom, Not Specified": "United Kingdom of Great Britain and Northern Ireland",
+        "England": "United Kingdom of Great Britain and Northern Ireland",
+        "Scotland": "United Kingdom of Great Britain and Northern Ireland",
+        "Czech Republic": "Czechia",
+        "Laos": "Lao People's Democratic Republic",
+        "Turkey": "Türkiye",
+        "Vietnam": "Viet Nam",
+        "St. Kitts-Nevis": "Saint Kitts and Nevis",
+        "St. Lucia": "Saint Lucia",
+        "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
+        "Ivory Coast": "Côte d’Ivoire",
+        "Democratic Republic of Congo": "Democratic Republic of the Congo",
+    }
     manually_matched_name_to_subregion = {
-            'Kosovo': 'Southern Europe',
-            'Yugoslavia': 'Southern Europe',
-            'Taiwan': 'Eastern Asia',
-            'West Indies': 'Latin America and the Caribbean',
-            'USSR': 'Eastern Europe',
-            'Czechoslovakia': 'Eastern Europe',
-            # Region Names
-            'Europe': 'Europe, not specified',
-            'Other Europe, Not Specified':  'Europe, not specified',
-            'Caribbean, Not Specified': 'Latin America and the Caribbean',
-            'Northern Africa, Not Specified': 'Northern Africa',
-            'Western Africa, Not Specified': 'Sub-Saharan Africa',
-            'Eastern Africa, Not Specified': 'Sub-Saharan Africa',
-            'Other Africa, Not Specified': 'Africa, not specified',
-            'Asia': 'Asia, not specified',
-            'South Central Asia, Not Specified': 'Asia, not specified',
-            'Other Asia, Not Specified': 'Asia, not specified',
-            'South America': 'Latin America and the Caribbean',
-            'Other US Island Areas, Oceania, Not Specified, or at Sea': 'Not specified',
-            'Americas, Not Specified': 'Not specified',
+        "Kosovo": "Southern Europe",
+        "Yugoslavia": "Southern Europe",
+        "Taiwan": "Eastern Asia",
+        "West Indies": "Latin America and the Caribbean",
+        "USSR": "Eastern Europe",
+        "Czechoslovakia": "Eastern Europe",
+        # Region Names
+        "Europe": "Europe, not specified",
+        "Other Europe, Not Specified": "Europe, not specified",
+        "Caribbean, Not Specified": "Latin America and the Caribbean",
+        "Northern Africa, Not Specified": "Northern Africa",
+        "Western Africa, Not Specified": "Sub-Saharan Africa",
+        "Eastern Africa, Not Specified": "Sub-Saharan Africa",
+        "Other Africa, Not Specified": "Africa, not specified",
+        "Asia": "Asia, not specified",
+        "South Central Asia, Not Specified": "Asia, not specified",
+        "Other Asia, Not Specified": "Asia, not specified",
+        "South America": "Latin America and the Caribbean",
+        "Other US Island Areas, Oceania, Not Specified, or at Sea": "Not specified",
+        "Americas, Not Specified": "Not specified",
     }
 
     if x in range(1, 57):  # US states
-        return 'United States of America'
+        return "United States of America"
     else:
         name = original_value_map(x)
-        if '(' in name:
-            name = name[:name.find('(')].strip()
+        if "(" in name:
+            name = name[: name.find("(")].strip()
         if name in manually_matched_area_names.keys():
             name = manually_matched_area_names[name]
-        for idx, (region, area) in unsd_data[['Sub-region Name', 'Country or Area']].iterrows():
+        for idx, (region, area) in unsd_data[
+            ["Sub-region Name", "Country or Area"]
+        ].iterrows():
             if name == area:
                 return region
             if name in area:
@@ -282,7 +345,9 @@ def transform_pobp_unsd(x):
         if name in manually_matched_name_to_subregion.keys():
             return manually_matched_name_to_subregion[name]
         else:
-            logging.warning(f"Could not find code '{x}' or name '{name}' in file '{ACS_CODEBOOK_DIR / 'UNSD.csv'}'")
+            logging.warning(
+                f"Could not find code '{x}' or name '{name}' in file '{ACS_CODEBOOK_DIR / 'UNSD.csv'}'"
+            )
             return "N/A"
 
 
@@ -301,16 +366,16 @@ def transform_relp(x):
         10: "Group quarters population",
     }
     map_to_lower_res = {
-        0: 0,   # "The reference person itself" -> "Reference person"
-        1: 1,   # "Husband/wife" -> "Spouse/Partner"
-        2: 2,   # "Biological son or daughter" -> "Children"
-        3: 2,   # "Adopted son or daughter" -> "Children"
-        4: 2,   # "Stepson or stepdaughter" -> "Children"
-        5: 3,   # "Brother or sister" -> "Siblings"
-        6: 4,   # "Father or mother" -> "Parents"
-        7: 5,   # "Grandchild" -> "Grandchild"
-        8: 6,   # "Parent-in-law" -> "Parent-in-law"
-        9: 7,   # "Son-in-law or daughter-in-law" -> "Son-in-law or daughter-in-law"
+        0: 0,  # "The reference person itself" -> "Reference person"
+        1: 1,  # "Husband/wife" -> "Spouse/Partner"
+        2: 2,  # "Biological son or daughter" -> "Children"
+        3: 2,  # "Adopted son or daughter" -> "Children"
+        4: 2,  # "Stepson or stepdaughter" -> "Children"
+        5: 3,  # "Brother or sister" -> "Siblings"
+        6: 4,  # "Father or mother" -> "Parents"
+        7: 5,  # "Grandchild" -> "Grandchild"
+        8: 6,  # "Parent-in-law" -> "Parent-in-law"
+        9: 7,  # "Son-in-law or daughter-in-law" -> "Son-in-law or daughter-in-law"
         10: 8,  # "Other relative" -> "Other relatives"
         11: 9,  # "Roomer or boarder" -> "Non-relatives (e.g., roommate, boarder)"
         12: 9,  # "Housemate or roommate" -> "Non-relatives (e.g., roommate, boarder)"
@@ -320,30 +385,32 @@ def transform_relp(x):
         16: 10,  # "Institutionalized group quarters population" -> "Group quarters population"
         17: 10,  # "Non-institutionalized group quarters population" -> "Group quarters population"
     }
-    return simplified_relp_map.get(map_to_lower_res(x))
+    return simplified_relp_map.get(map_to_lower_res.get(x))
 
 
 def transform_wkhp(x, bin_width=10, max_hours=60):
-    bins = np.array([bin_width*i for i in range(0, max_hours//bin_width+1)])
+    bins = np.array([bin_width * i for i in range(0, max_hours // bin_width + 1)])
     if x <= bins[0]:
         return "N/A (less than 16 years old, or did not work during the past 12 months)"
     elif x > bins[-1]:
-        return {f"more than {bins[-1]} hours"}
+        return f"more than {bins[-1]} hours"
     else:
-        l, u = [(bins[k], bins[k+1]-1) for k in range(len(bins)) if x >= bins[k] and x < bins[k+1]][0]
+        l, u = [
+            (bins[k], bins[k + 1] - 1)
+            for k in range(len(bins))
+            if x >= bins[k] and x < bins[k + 1]
+        ][0]
         return f"{l}-{u} hours"
 
 
 def transform_rac1p_binary(x):
     # binarize
-    binary_value_map = {
-        1: "White",
-        2: "Non-White"
-    }
+    binary_value_map = {1: "White", 2: "Non-White"}
 
     def map_to_binary(x):
         return 1 if x == 1 else 2
-    return binary_value_map(map_to_binary(x))
+
+    return binary_value_map.get(map_to_binary(x))
 
 
 def transform_rac1p(x):
@@ -357,16 +424,16 @@ def transform_rac1p(x):
         7: "Two or more races",
     }
     map_to_lower_res = {1: 1, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7}
-    return simplified_rac1p_map(map_to_lower_res(x))
+    return simplified_rac1p_map.get(map_to_lower_res.get(x))
 
 
 simplified_value_maps = {
-    'AGEP': transform_age,
-    'COW': transform_cow,
-    'SCHL': transform_schooling,
-    'OCCP': transform_occp,
-    'POBP': transform_pobp,
-    'RELP': transform_relp,
-    'WKHP': transform_wkhp,
-    'RAC1P': transform_rac1p,
+    "AGEP": transform_age,
+    "COW": transform_cow,
+    "SCHL": transform_schooling,
+    "OCCP": transform_occp,
+    "POBP": transform_pobp,
+    "RELP": transform_relp,
+    "WKHP": transform_wkhp,
+    "RAC1P": transform_rac1p,
 }
