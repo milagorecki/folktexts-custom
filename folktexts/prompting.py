@@ -75,13 +75,13 @@ class VaryFormat(PromptVariation):
         for col, val in row.items():
             if col in self.task.features:
                 if self.format == "bullet":
-                    row[col] = "- " + str(val.item()) + "\n"
+                    row[col] = f"- {val}\n"
                 elif self.format == "comma":
-                    row[col] = str(val.item()) + ", "
+                    row[col] = f"{val}, "
                 elif self.format == "text":
-                    row[col] = "The " + str(val.item()) + ". "
+                    row[col] = f"The {val}. "
                 elif self.format == "textbullet":
-                    row[col] = "- The " + str(val.item()) + ".\n"
+                    row[col] = f"- The {val}.\n"
         return row
 
 
@@ -99,9 +99,41 @@ class VaryConnector(PromptVariation):
         for col, val in row.items():
             if col in self.task.features:
                 row[col] = (
-                    # f"{self.task.cols_to_text[col].short_description} {self.connector} {self.task.cols_to_text[col][val]}"
-                    f"{self.task.cols_to_text[col].short_description}{self.connector}{row[col].item()}"
+                    f"{self.task.cols_to_text[col].short_description}{self.connector}{val}"
                 )
+        return row
+
+
+class VaryValueMap(PromptVariation):
+    def __init__(self, task, granularity="original"):
+        description = "Vary the granulariy of the feature map, default: original (higher granularity) value map."
+        super().__init__(description, task)
+        assert granularity in ["original", "low"]
+        self.granularity = granularity
+        if self.granularity == 'low':
+            # empty cache of previously parsed pums codes to overwrite with new postprocessing for value map
+            reset_cache()
+
+    def __call__(self, row: pd.Series, **kwds) -> pd.Series:
+        for col, val in row.items():
+            if col in self.task.features:
+                # overwrite value map if wanted
+                if self.granularity == "low" and col in simplified_value_maps.keys():
+                    self.task.cols_to_text[col]._value_map = simplified_value_maps[col]
+                # apply value map
+                row[col] = self.task.cols_to_text[col][val]
+        return row
+
+
+class VaryFeatureOrder(PromptVariation):
+    def __init__(self, task, ordered_features: list = None):
+        description = "Vary the order of the features."
+        super().__init__(description, task)
+        assert all([f in self.task.features for f in ordered_features])
+        self.order = self.task.features if not ordered_features else ordered_features
+
+    def __call__(self, row, **kwds):
+        raise NotImplementedError
         return row
 
 
@@ -137,42 +169,19 @@ class VaryPrefix(PromptVariation):
             else:
                 prefix = self.TASK_DESCRIPTION
             # add new line after prefix
-            row.insert(0, "_PREFIX", prefix + "\nInformation:\n")
+            row = pd.Series(
+                {
+                    "_PREFIX": prefix + "\nInformation:\n",
+                    **{index: val for index, val in row.items()},
+                }
+            )
         else:
-            row.insert(0, "_PREFIX", "Information:\n")
-        return row
-
-
-class VaryValueMap(PromptVariation):
-    def __init__(self, task, granularity="original"):
-        description = "Vary the granulariy of the feature map, default: original (higher granularity) value map."
-        super().__init__(description, task)
-        assert granularity in ["original", "low"]
-        self.granularity = granularity
-        if self.granularity == 'low':
-            # empty cache of previously parsed pums codes to overwrite with new postprocessing for value map
-            reset_cache()
-
-    def __call__(self, row: pd.Series, **kwds) -> pd.Series:
-        for col, val in row.items():
-            if col in self.task.features:
-                # overwrite value map if wanted
-                if self.granularity == "low" and col in simplified_value_maps.keys():
-                    self.task.cols_to_text[col]._value_map = simplified_value_maps[col]
-                # apply value map
-                row[col] = self.task.cols_to_text[col][val.item()]
-        return row
-
-
-class VaryFeatureOrder(PromptVariation):
-    def __init__(self, task, ordered_features: list = None):
-        description = "Vary the order of the features."
-        super().__init__(description, task)
-        assert all([f in self.task.features for f in ordered_features])
-        self.order = self.task.features if not ordered_features else ordered_features
-
-    def __call__(self, row, **kwds):
-        raise NotImplementedError
+            row = pd.Series(
+                {
+                    '_PREFIX': "Information:\n",
+                    **{index: val for index, val in row.items()},
+                }
+            )
         return row
 
 
@@ -190,10 +199,11 @@ class VarySuffix(PromptVariation):
         row,
         **kwds,
     ):
-        row.insert(
-            row.shape[1],
-            "_SUFFIX",
-            f"\n{self.question.get_question_prompt()}{self.custom_suffix if self.custom_suffix else ''}",
+        row = pd.Series(
+            {
+                **{index: val for index, val in row.items()},
+                "_SUFFIX": f"\n{self.question.get_question_prompt()}{self.custom_suffix if self.custom_suffix else ''}",
+            }
         )
         return row
 
@@ -257,7 +267,7 @@ def encode_row_prompt(
 
     for fun in building_blocks:
         row = fun(row)
-    return "".join(row.values[0])
+    return "".join(row.values)
 
 
 def encode_row_prompt_few_shot(
