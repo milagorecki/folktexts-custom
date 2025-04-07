@@ -93,9 +93,9 @@ class VaryConnector(PromptVariation):
             self.connector = f"{connector} "
         else:
             self.connector = f" {connector} "
+        logging.warning("VaryConnector should be applied after value mapping has already been applied.")
 
     def __call__(self, row: pd.Series, **kwds) -> pd.Series:
-        logging.warning("Assume value mapping has already been applied.")
         for col, val in row.items():
             if col in self.task.features:
                 row[col] = (
