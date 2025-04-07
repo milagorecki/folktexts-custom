@@ -6,15 +6,18 @@ import re
 from pathlib import Path
 from typing import Callable
 
+CACHE_PUMS_CODES = {}
+
 
 def parse_pums_code(
     value: int,
     file: str | Path,
     postprocess: Callable[[str], str] | None = None,
-    cache={},
+    # cache={},
 ) -> str:
     # Check if file already loaded into cache
-    if file not in cache:
+    global CACHE_PUMS_CODES
+    if file not in CACHE_PUMS_CODES:
         line_re = re.compile(r"(?P<code>\d+)\s+[.](?P<description>.+)$")
 
         file_cache = {}
@@ -28,10 +31,10 @@ def parse_pums_code(
                 code, description = m.group("code"), m.group("description")
                 file_cache[int(code)] = postprocess(description) if postprocess else description
 
-        cache[file] = file_cache
+        CACHE_PUMS_CODES[file] = file_cache
 
-    # Get file cache
-    file_cache = cache[file]
+    # Get file caches
+    file_cache = CACHE_PUMS_CODES[file]
 
     # Return the value from cache, or "N/A" if not found
     if value not in file_cache:
@@ -39,3 +42,8 @@ def parse_pums_code(
         return "N/A"
 
     return file_cache[value]
+
+
+def reset_cache():
+    global CACHE_PUMS_CODES
+    CACHE_PUMS_CODES.clear()  # Reset cache
