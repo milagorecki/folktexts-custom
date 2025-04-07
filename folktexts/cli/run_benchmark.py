@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line.
 Usage:
-    - exemplary: run_benchmark --model gpt2 --results-dir './results/test/' --data-dir '../llm_fairness/folktexts/data' --task ACSIncome --subsampling 0.01 --style "format=bullet,connector=is" --logger-level ERROR
+    - exemplary: run_benchmark --model gpt2 --results-dir './results/test/' --data-dir '../llm_fairness/folktexts/data' --task ACSIncome --subsampling 0.01 --variation "format=bullet,connector=is" --logger-level ERROR
 """
 import json
 import logging
@@ -19,7 +19,7 @@ ACS_TASKS = (
     "ACSPublicCoverage",
 )
 TABLESHIFT_TASKS = (
-    "BRFSS_Diabetes",   
+    "BRFSS_Diabetes",
     "BRFSS_Blood_Pressure",
 )
 
@@ -131,8 +131,8 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--style",
-        help="[dict] Dictionary specifying style of data point serialization.",
+        "--variation",
+        help="[dict] Dictionary specifying variations of data point serialization.",
         nargs="*",
         action=ParseDict,
         required=False,
@@ -177,14 +177,14 @@ def main():
         few_shot=args.few_shot,
         numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
-        balance_few_shot_examples = args.balance_few_shot_examples,
+        balance_few_shot_examples=args.balance_few_shot_examples,
         batch_size=args.batch_size,
         context_size=args.context_size,
         correct_order_bias=not args.dont_correct_order_bias,
         feature_subset=args.use_feature_subset or None,
         population_filter=population_filter_dict,
         seed=args.seed,
-        prompt_style=args.style if args.style != {} else None,
+        prompt_variation=args.variation if args.variation != {} else None,
     )
 
     # Create Benchmark object
@@ -200,15 +200,15 @@ def main():
             subsampling=args.subsampling,
             max_api_rpm=args.max_api_rpm,
         )
-    elif task in TABLESHIFT_TASKS: 
+    elif task in TABLESHIFT_TASKS:
         bench = Benchmark.make_tableshift_benchmark(
-        task_name=args.task,
-        model=model,
-        tokenizer=tokenizer,
-        data_dir=args.data_dir,
-        config=config,
-        subsampling=args.subsampling,
-        max_api_rpm=args.max_api_rpm,
+            task_name=args.task,
+            model=model,
+            tokenizer=tokenizer,
+            data_dir=args.data_dir,
+            config=config,
+            subsampling=args.subsampling,
+            max_api_rpm=args.max_api_rpm,
         )
     else:
         raise ValueError(f"Unknown task name: {args.task}")

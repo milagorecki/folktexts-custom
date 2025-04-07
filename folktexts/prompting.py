@@ -9,12 +9,18 @@ from __future__ import annotations
 
 import logging
 
+from copy import deepcopy
+import inspect
+
 import pandas as pd
 from transformers import AutoTokenizer
 
 from .dataset import Dataset
 from .qa_interface import QAInterface
 from .task import TaskMetadata
+
+from folktexts.acs.acs_columns_alt import simplified_value_maps
+from folktexts.acs._utils import reset_cache
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
@@ -37,48 +43,166 @@ The data provided is enough to reach an approximate answer for each person.
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
 
+_valid_keys_cache = {}
 
-def serialize_row(
-    row: pd.Series,
-    task: TaskMetadata,
-    format: str = "bullet",
-    connector: str = "is",
-    standardized_sentence=True,
-    **kwargs,
-):
-    if kwargs:
-        logging.warning(f"{kwargs} are currently ignored.")
-    if format == "bullet":
-        return (
-            "\n".join(
-                [
-                    "- "
-                    + f"{task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col][val]}"
-                    for (col, val) in row.items()
-                ]
-            )
-            + "\n"
+
+class PromptVariation:
+    def __init__(self, description, task):
+        self.description = description
+        self.task = deepcopy(task)
+
+    def __call__(self, row: pd.Series, **kwds):
+        raise NotImplementedError
+        return row
+
+
+class VaryFormat(PromptVariation):
+    def __init__(self, task, format: str = "bullet"):
+        description = "Vary the format of the prompt, by default 'bullet' is used."
+        super().__init__(description, task)
+        assert format in [
+            "bullet",
+            "comma",
+            "text",
+            "textbullet",
+        ], "Currently only 'bullet', 'comma', 'text', 'textbullet' implemented."
+        self.format = format
+        logging.warning(
+            "VaryFormat should be applied after the value mapping and adding the connector."
         )
-    elif format == "text":
-        return (
-            " ".join(
-                [
-                    (
-                        f"The {task.cols_to_text[col].short_description} {connector} {task.cols_to_text[col][val]}."
-                        if standardized_sentence
-                        else task.cols_to_text[col]._verbalize(
-                            task.cols_to_text[col][val]
-                        )
-                    )
-                    for (col, val) in row.items()
-                ]
-            )
-            + "\n"
+
+    def __call__(self, row: pd.Series, **kwds) -> pd.Series:
+        for col, val in row.items():
+            if col in self.task.features:
+                if self.format == "bullet":
+                    row[col] = "- " + str(val.item()) + "\n"
+                elif self.format == "comma":
+                    row[col] = str(val.item()) + ", "
+                elif self.format == "text":
+                    row[col] = "The " + str(val.item()) + ". "
+                elif self.format == "textbullet":
+                    row[col] = "- The " + str(val.item()) + ".\n"
+        return row
+
+
+class VaryConnector(PromptVariation):
+    def __init__(self, task, connector: str = "is"):
+        description = "Vary the connector word or symbol used between feature name and value, by default 'is' is used."
+        super().__init__(description, task)
+        if connector == ':':
+            self.connector = f"{connector} "
+        else:
+            self.connector = f" {connector} "
+
+    def __call__(self, row: pd.Series, **kwds) -> pd.Series:
+        logging.warning("Assume value mapping has already been applied.")
+        for col, val in row.items():
+            if col in self.task.features:
+                row[col] = (
+                    # f"{self.task.cols_to_text[col].short_description} {self.connector} {self.task.cols_to_text[col][val]}"
+                    f"{self.task.cols_to_text[col].short_description}{self.connector}{row[col].item()}"
+                )
+        return row
+
+
+class VaryPrefix(PromptVariation):
+    logging.warning("Task description currently fixed to ACS tasks.")
+
+    def __init__(
+        self,
+        task: TaskMetadata,
+        add_task_description: bool = True,
+        custom_prompt_prefix: str = None,
+    ):
+        description = "Vary the prefix printed before the prompt, by default the task description is printed."
+        super().__init__(description, task)
+        self.TASK_DESCRIPTION = (
+            ACS_TASK_DESCRIPTION
+            if task.name.startswith("ACS")
+            else "TABLESHIFT_TASK_DESCRIPTION"
         )
-    else:
-        raise NotImplementedError(
-            f"Style not implemented, currently only 'bullet' list and 'text' are supported, received '{format}'."
+        self.add_task_description = add_task_description
+        self.custom_prefix = custom_prompt_prefix
+
+    def __call__(
+        self,
+        row: pd.Series,
+        **kwds,
+    ) -> pd.Series:
+        if self.add_task_description:
+            if self.custom_prefix:
+                if self.custom_prefix[-1] != "\n":
+                    self.custom_prefix = self.custom_prefix + "\n"
+                prefix = self.TASK_DESCRIPTION + self.custom_prefix
+            else:
+                prefix = self.TASK_DESCRIPTION
+            # add new line after prefix
+            row.insert(0, "_PREFIX", prefix + "\nInformation:\n")
+        else:
+            row.insert(0, "_PREFIX", "Information:\n")
+        return row
+
+
+class VaryValueMap(PromptVariation):
+    def __init__(self, task, granularity="original"):
+        description = "Vary the granulariy of the feature map, default: original (higher granularity) value map."
+        super().__init__(description, task)
+        assert granularity in ["original", "low"]
+        self.granularity = granularity
+        if self.granularity == 'low':
+            # empty cache of previously parsed pums codes to overwrite with new postprocessing for value map
+            reset_cache()
+
+    def __call__(self, row: pd.Series, **kwds) -> pd.Series:
+        for col, val in row.items():
+            if col in self.task.features:
+                # overwrite value map if wanted
+                if self.granularity == "low" and col in simplified_value_maps.keys():
+                    self.task.cols_to_text[col]._value_map = simplified_value_maps[col]
+                # apply value map
+                row[col] = self.task.cols_to_text[col][val.item()]
+        return row
+
+
+class VaryFeatureOrder(PromptVariation):
+    def __init__(self, task, ordered_features: list = None):
+        description = "Vary the order of the features."
+        super().__init__(description, task)
+        assert all([f in self.task.features for f in ordered_features])
+        self.order = self.task.features if not ordered_features else ordered_features
+
+    def __call__(self, row, **kwds):
+        raise NotImplementedError
+        return row
+
+
+class VarySuffix(PromptVariation):
+    def __init__(
+        self, task, question: QAInterface = None, custom_prompt_suffix: str = None
+    ):
+        description = "Vary the suffix, in particular the question."
+        super().__init__(description, task)
+        self.question = question if question else task.question
+        self.custom_suffix = custom_prompt_suffix
+
+    def __call__(
+        self,
+        row,
+        **kwds,
+    ):
+        row.insert(
+            row.shape[1],
+            "_SUFFIX",
+            f"\n{self.question.get_question_prompt()}{self.custom_suffix if self.custom_suffix else ''}",
         )
+        return row
+
+
+def get_valid_keys(cls):
+    if cls not in _valid_keys_cache:
+        params = inspect.signature(cls.__init__).parameters
+        _valid_keys_cache[cls] = set(params) - {'self', 'args', 'kwargs'}
+    return _valid_keys_cache[cls]
 
 
 def encode_row_prompt(
@@ -88,27 +212,52 @@ def encode_row_prompt(
     custom_prompt_prefix: str = None,
     add_task_description: bool = True,
     custom_prompt_suffix: str = None,
-    prompt_style: dict | None = None,
+    prompt_variation: dict | None = None,
 ) -> str:
     """Encode a question regarding a given row."""
-    if custom_prompt_prefix and custom_prompt_prefix[-1] != "\n":
-        custom_prompt_prefix = custom_prompt_prefix + "\n"
-    task_description = (ACS_TASK_DESCRIPTION if add_task_description else "") + (
-        f"\n{custom_prompt_prefix}" if custom_prompt_prefix else ""
-    )
     # ensure only feature defined for the task are used
     row = row[task.features]
-    serialized_row = serialize_row(row, task, **prompt_style if prompt_style else {})
     # Get the question to ask
     question = question or task.question
-    return (
-        task_description
-        + ("\n" if len(task_description) > 0 else "")
-        + f"Information:\n{serialized_row}"
-        + "\n"
-        + f"{question.get_question_prompt()}"
-        + (custom_prompt_suffix if custom_prompt_suffix else "")
-    )
+
+    def use_variation(cls, default_kwargs):
+        if prompt_variation is None:
+            return cls(task=task, **default_kwargs)
+        # get parameters from class __init__
+        valid_keys = get_valid_keys(cls)
+
+        # merge and overwrite defaults with variations
+        merged = {**default_kwargs, **prompt_variation}
+
+        # filter out keys not in class __init__
+        filtered_kwargs = {k: v for k, v in merged.items() if k in valid_keys}
+
+        return cls(task=task, **filtered_kwargs)
+
+    building_blocks = [
+        use_variation(
+            VaryPrefix,
+            {
+                "add_task_description": add_task_description,
+                "custom_prompt_prefix": custom_prompt_prefix,
+            },
+        ),
+        use_variation(
+            VarySuffix,
+            {
+                "question": question,
+                "custom_prompt_suffix": custom_prompt_suffix,
+            },
+        ),
+        # order of value map, connector and format should not be changed
+        use_variation(VaryValueMap, {"granularity": "original"}),
+        use_variation(VaryConnector, {"connector": "is"}),
+        use_variation(VaryFormat, {"format": "textbullet"}),
+    ]
+
+    for fun in building_blocks:
+        row = fun(row)
+    return "".join(row.values[0])
 
 
 def encode_row_prompt_few_shot(
@@ -120,7 +269,7 @@ def encode_row_prompt_few_shot(
     reuse_examples: bool = False,
     class_balancing: bool = False,
     custom_prompt_prefix: str = None,
-    prompt_style: dict | None = None,
+    prompt_variation: dict | None = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -163,7 +312,7 @@ def encode_row_prompt_few_shot(
                 task=task,
                 add_task_description=False,
                 custom_prompt_prefix=custom_prompt_prefix,
-                prompt_style=prompt_style,
+                prompt_variation=prompt_variation,
             )
             + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
@@ -176,7 +325,7 @@ def encode_row_prompt_few_shot(
         add_task_description=False,
         custom_prompt_prefix=custom_prompt_prefix,
         question=question,
-        prompt_style=prompt_style,
+        prompt_style=prompt_variation,
     )
     return prompt
 
