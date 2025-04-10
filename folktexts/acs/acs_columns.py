@@ -654,7 +654,7 @@ acs_travel_time_target_col = ColumnToText(
     verbalize=lambda x: (
         f"The person's commute time is {x}."
         if not x.startswith("N/A")
-        else "No commute time is providd, because the person is not a worker or is a worker who worked at home."
+        else "No commute time is provided, because the person is not a worker or is a worker who worked at home."
     ),
 )
 
