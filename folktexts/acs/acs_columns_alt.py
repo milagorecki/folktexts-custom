@@ -15,32 +15,27 @@ ACS_CODEBOOK_DIR = Path(__file__).parent / "data"
 
 
 def transform_age(x, bin_width=10, min_age=18, max_age=90):
-    age_bins = np.array(
-        [min_age]
-        + [
-            bin_width * i
-            for i in range(min_age // bin_width + 1, max_age // bin_width + 1)
-        ]
-        + [max_age]
-    )
-    # large enough step after min age
-    if age_bins[1] - age_bins[0] <= bin_width / 2:
-        age_bins = np.concatenate([age_bins[0:1], age_bins[2:]])
-    # large enough step to max age
-    if age_bins[-1] - age_bins[-2] <= bin_width / 2:
-        age_bins = np.concatenate([age_bins[:-2], age_bins[-1:]])
-
-    if x < age_bins[0]:
-        return f"Less than {age_bins[0]} years old"
-    elif x >= age_bins[-1]:
-        return f"{age_bins[-1]} or more years old"
+    # Create age bins including min and max
+    # Find the first bin edge >= min_age that is a multiple of bin_width
+    first_bin_edge = ((min_age + bin_width - 1) // bin_width) * bin_width
+    # skip if too close to min age
+    if first_bin_edge - min_age > bin_width / 2:
+        age_bins = [min_age, first_bin_edge]
     else:
-        l, u = [
-            (age_bins[k], age_bins[k + 1] - 1)
-            for k in range(len(age_bins))
-            if x >= age_bins[k] and x < age_bins[k + 1]
-        ][0]
-        return f"{l}-{u} years old"
+        age_bins = [min_age]
+    age_bins += list(np.arange(first_bin_edge + bin_width, max_age, bin_width))
+    age_bins.append(max_age)
+
+    if x < min_age:
+        return f"Less than {min_age} years old"
+    elif x >= max_age:
+        return f"{max_age} or more years old"
+
+    # Find the index of the bin this age falls into
+    idx = np.searchsorted(age_bins, x, side='right') - 1
+    lower = age_bins[idx]
+    upper = age_bins[idx + 1] - 1
+    return f"{lower}-{upper} years old"
 
 
 def transform_cow(x):

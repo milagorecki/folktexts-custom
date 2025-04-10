@@ -135,7 +135,7 @@ class VaryFeatureOrder(PromptVariation):
         if order:
             if isinstance(order, str):
                 order = list(order.split(','))
-            else: 
+            else:
                 assert isinstance(order, list), "Expected order provided as list"  # mutable
             assert set(order) == set(self.task.features), 'Provide a complete ordering of all features'
         self.order = order
