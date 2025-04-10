@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from string import Template
 
 import folktables
 from folktables import BasicProblem
@@ -22,6 +23,16 @@ from .acs_thresholds import (
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
 )
+
+
+ACS_TASK_DESCRIPTION = Template("""\
+The following data corresponds to $respondent. \
+The survey was conducted among US residents in $year. \
+Please answer the question based on the information provided. \
+The data provided is enough to reach an approximate answer$suffix.
+""")
+ACS_TASK_DESCRIPTION_DEFAULTS = {'respondent': 'a survey respondent', 'year': 2018, 'suffix': ''}
+
 
 # Map of ACS column names to ColumnToText objects
 acs_columns_map: dict[str, object] = {
