@@ -21,24 +21,27 @@ from .task import TaskMetadata
 
 from folktexts.acs.acs_columns_alt import simplified_value_maps
 from folktexts.acs._utils import reset_cache
+from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
+from folktexts.ts import TABLESHIFT_TASK_DESCRIPTION, TABLESHIFT_TASK_DESCRIPTION_DEFAULTS
+
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
 """
 
-ACS_TASK_DESCRIPTION = """\
-The following data corresponds to a survey respondent. \
-The survey was conducted among US residents in 2018. \
-Please answer the question based on the information provided. \
-The data provided is enough to reach an approximate answer.
-"""
+# ACS_TASK_DESCRIPTION = """\
+# The following data corresponds to a survey respondent. \
+# The survey was conducted among US residents in 2018. \
+# Please answer the question based on the information provided. \
+# The data provided is enough to reach an approximate answer.
+# """
 
-ACS_FEW_SHOT_TASK_DESCRIPTION = """\
-The following data corresponds to different survey respondents. \
-The survey was conducted among US residents in 2018. \
-Please answer each question based on the information provided. \
-The data provided is enough to reach an approximate answer for each person.
-"""
+# ACS_FEW_SHOT_TASK_DESCRIPTION = """\
+# The following data corresponds to different survey respondents. \
+# The survey was conducted among US residents in 2018. \
+# Please answer each question based on the information provided. \
+# The data provided is enough to reach an approximate answer for each person.
+# """
 
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
@@ -126,33 +129,41 @@ class VaryValueMap(PromptVariation):
 
 
 class VaryFeatureOrder(PromptVariation):
-    def __init__(self, task, ordered_features: list = None):
+    def __init__(self, task, order: list = None):
         description = "Vary the order of the features."
         super().__init__(description, task)
-        assert all([f in self.task.features for f in ordered_features])
-        self.order = self.task.features if not ordered_features else ordered_features
+        if order:
+            assert set(order) == set(self.task.features), 'Provide a complete ordering of all features'
+            assert isinstance(order, list), "Expected order provided as list"  # mutable
+        self.order = order
 
-    def __call__(self, row, **kwds):
-        raise NotImplementedError
-        return row
+    def __call__(self, row: pd.Series, **kwds):
+        if not self.order:
+            return row
+        feature_set = set(self.task.features)  # for fast lookup
+        # Build a mapping from original position → whether to use reordered feature or keep original
+        reordered_iter = iter(self.order)
+        order_all = [
+            next(reordered_iter) if col in feature_set else col
+            for col in row.index
+        ]
+        return row[order_all]
 
 
 class VaryPrefix(PromptVariation):
-    logging.warning("Task description currently fixed to ACS tasks.")
 
     def __init__(
         self,
         task: TaskMetadata,
         add_task_description: bool = True,
         custom_prompt_prefix: str = None,
+        task_description: str = None
     ):
         description = "Vary the prefix printed before the prompt, by default the task description is printed."
         super().__init__(description, task)
-        self.TASK_DESCRIPTION = (
-            ACS_TASK_DESCRIPTION
-            if task.name.startswith("ACS")
-            else "TABLESHIFT_TASK_DESCRIPTION"
-        )
+        if add_task_description:
+            assert task_description is not None, 'Provide a task description to add.'
+        self.task_description = task_description
         self.add_task_description = add_task_description
         self.custom_prefix = custom_prompt_prefix
 
@@ -165,9 +176,9 @@ class VaryPrefix(PromptVariation):
             if self.custom_prefix:
                 if self.custom_prefix[-1] != "\n":
                     self.custom_prefix = self.custom_prefix + "\n"
-                prefix = self.TASK_DESCRIPTION + self.custom_prefix
+                prefix = self.task_description + self.custom_prefix
             else:
-                prefix = self.TASK_DESCRIPTION
+                prefix = self.task_description
             # add new line after prefix
             row = pd.Series(
                 {
@@ -218,6 +229,11 @@ def get_valid_keys(cls):
 _building_blocks_cache = []
 
 
+def reset_building_block_cache():
+    global _building_blocks_cache
+    _building_blocks_cache.clear()
+
+
 def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
@@ -255,6 +271,11 @@ def encode_row_prompt(
                 {
                     "add_task_description": add_task_description,
                     "custom_prompt_prefix": custom_prompt_prefix,
+                    "task_description": (
+                        ACS_TASK_DESCRIPTION.substitute(ACS_TASK_DESCRIPTION_DEFAULTS)
+                        if task.name.startswith("ACS")
+                        else TABLESHIFT_TASK_DESCRIPTION.substitute(TABLESHIFT_TASK_DESCRIPTION_DEFAULTS)
+                        )
                 },
             ),
             use_variation(
@@ -264,6 +285,7 @@ def encode_row_prompt(
                     "custom_prompt_suffix": custom_prompt_suffix,
                 },
             ),
+            use_variation(VaryFeatureOrder, {"order": None}),
             # order of value map, connector and format should not be changed
             use_variation(VaryValueMap, {"granularity": "original"}),
             use_variation(VaryConnector, {"connector": "is"}),
@@ -314,7 +336,7 @@ def encode_row_prompt_few_shot(
     )
 
     # Start with task description
-    prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
+    prompt = ""  # ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
 
     # Get the question to ask
     question = question or task.question
@@ -325,13 +347,34 @@ def encode_row_prompt_few_shot(
             encode_row_prompt(
                 X_examples.iloc[i],
                 task=task,
-                add_task_description=False,
+                add_task_description=(i == 0),
                 custom_prompt_prefix=custom_prompt_prefix,
-                prompt_variation=prompt_variation,
+                prompt_variation={
+                    **(prompt_variation or {}),
+                    "task_description": (
+                        ACS_TASK_DESCRIPTION.substitute(
+                            {
+                                **ACS_TASK_DESCRIPTION_DEFAULTS,
+                                "respondent": "different survey respondents",
+                                "suffix": " for each person",
+                            }
+                        )
+                        if task.name.startswith("ACS")
+                        else TABLESHIFT_TASK_DESCRIPTION.substitute(
+                            {
+                                **TABLESHIFT_TASK_DESCRIPTION_DEFAULTS,
+                                "respondent": "different survey respondents",
+                                "suffix": " for each person",
+                            }
+                        )
+                    ),
+                    "custom_prompt_suffix": f" {question.get_answer_key_from_value(y_examples.iloc[i])}\n\n"
+                },
             )
-            + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
-            + "\n\n"
         )
+        # only add task description before first examples
+        if i == 0:
+            reset_building_block_cache()
 
     # Add the target row without its label
     prompt += encode_row_prompt(
@@ -340,7 +383,7 @@ def encode_row_prompt_few_shot(
         add_task_description=False,
         custom_prompt_prefix=custom_prompt_prefix,
         question=question,
-        prompt_style=prompt_variation,
+        prompt_variation=prompt_variation,
     )
     return prompt
 
