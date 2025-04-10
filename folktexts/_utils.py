@@ -152,8 +152,9 @@ class ParseDict(Action):
         if len(values) > 1:
             logging.error("ParseDict received more than one value:", values)
         value_list = values[0].split(";")
-        for value in value_list:
-            key, value = value.split("=")
+        for pair in value_list:
+            key, _, value = pair.partition("=")
+            assert value != '', f"Some value could not be parsed, received {pair}."
             if is_int(value):
                 value = int(value)
             elif is_float(value):
