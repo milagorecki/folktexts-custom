@@ -129,12 +129,15 @@ class VaryValueMap(PromptVariation):
 
 
 class VaryFeatureOrder(PromptVariation):
-    def __init__(self, task, order: list = None):
+    def __init__(self, task, order: list | str = None):
         description = "Vary the order of the features."
         super().__init__(description, task)
         if order:
+            if isinstance(order, str):
+                order = list(order.split(','))
+            else: 
+                assert isinstance(order, list), "Expected order provided as list"  # mutable
             assert set(order) == set(self.task.features), 'Provide a complete ordering of all features'
-            assert isinstance(order, list), "Expected order provided as list"  # mutable
         self.order = order
 
     def __call__(self, row: pd.Series, **kwds):
