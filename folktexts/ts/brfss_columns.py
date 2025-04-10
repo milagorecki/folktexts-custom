@@ -1,15 +1,30 @@
-from functools import partial
-from pathlib import Path
+"""
+BRFSS task columns
+
+Value Maps adapted from https://github.com/mlfoundations/tableshift/blob/main/tableshift/datasets/brfss.py
+
+For more information on datasets and access in TableShift, see:
+* https://tableshift.org/datasets.html
+* https://github.com/mlfoundations/tableshift
+
+Accessed via https://www.kaggle.com/datasets/cdc/behavioral-risk-factor-surveillance-system.
+Raw Data: https://www.cdc.gov/brfss/annual_data/annual_data.htm
+Data Dictionary: https://www.cdc.gov/brfss/annual_data/2015/pdf/codebook15_llcp.pdf
+
+"""
+
+# from functools import partial
+# from pathlib import Path
 import logging
 
 from ..col_to_text import ColumnToText
 from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
-from .tableshift_thresholds import *
+from .tableshift_thresholds import brfss_diabetes_threshold, brfss_hypertension_threshold
 
 
 tableshift_physical_health = ColumnToText(
     name="PHYSHLTH",
-    short_description="number of days physical health was not good in the past 30 days",
+    short_description="number of days during the past 30 dayswhere physical health was not good",
     value_map=lambda x: f"{int(x)} days",
     missing_value_fill="N/A (refused or unknown)",
 )
@@ -60,9 +75,9 @@ tableshift_chol_chk_past_5_years = ColumnToText(
     short_description="time since last blood cholesterol check",
     value_map={
         1.0: "never checked",
-        2.0: "within past year (anytime < 12 months ago)",
-        3.0: "within past 2 years (> 1 year but < 2 years ago)",
-        4.0: "within past 5 years (> 2 years but < 5 years ago)",
+        2.0: "within the past year (anytime less than 12 months ago)",
+        3.0: "within the past 2 years (1 year but less than 2 years ago)",
+        4.0: "within the past 5 years (2 years but less than 5 years ago)",
         5.0: "5 or more years ago",
         # 7: 'don\'t know',
         # 9: 'refused'
@@ -79,7 +94,7 @@ tableshift_told_hi = ColumnToText(
         "2.0": "No",
         # 7: 'don\'t know',
         # 9: 'refused',
-        "NOTASKED_MISSING": "answer missing, because question was not asked",
+        "NOTASKED_MISSING": "N/A (answer missing, because question was not asked)",
     },
     missing_value_fill="N/A (refused, unknown or not asked)",
 )
@@ -95,10 +110,10 @@ tableshift_bmi5cat = ColumnToText(
     name="BMI5CAT",
     short_description="body mass index (kg/m^2) category",
     value_map={
-        1.0: "underweight (BMI < 1850)",
-        2.0: "normal weight (1850 <= BMI < 2500)",
-        3.0: "overweight (2500 <= BMI < 3000)",
-        4.0: "obese (3000 <= BMI < 9999)",
+        1.0: "underweight",  # (BMI < 1850)",
+        2.0: "normal weight",  # (1850 <= BMI < 2500)",
+        3.0: "overweight",  # (2500 <= BMI < 3000)",
+        4.0: "obese",  # (3000 <= BMI < 9999)",
     },
     missing_value_fill="N/A (missing)",
 )
@@ -116,7 +131,7 @@ tableshift_smoke100 = ColumnToText(
 logging.debug("Encoding value map keys of 'SMOKDAY2' as strings.")
 tableshift_smokday2 = ColumnToText(
     name="SMOKDAY2",
-    short_description="currently smoking cigarettes every day, some days, or not at all",
+    short_description="current frequency of cigarette smoking",  # every day, some days, or not at all",
     value_map={
         "1.0": "every day",
         "2.0": "some days",
@@ -134,7 +149,7 @@ tableshift_cvdstrk3 = ColumnToText(
     value_map={
         1.0: "Yes",
         2.0: "No",
-    },  ## TODO: Check if mapping should be changed to 0,1
+    },  # TODO: Check if mapping should be changed to 0,1
     missing_value_fill="N/A (refused or unknown)",
 )
 
@@ -144,7 +159,7 @@ tableshift_michd = ColumnToText(
     value_map={
         1.0: "Yes, reported myocardial infarction or coronary heart disease.",
         2.0: "No, did not report myocardial infarction or coronary heart disease.",
-    },  ## TODO: Check if mapping should be changed to 0,1
+    },  # TODO: Check if mapping should be changed to 0,1
     missing_value_fill="N/A (missing)",
 )
 
@@ -152,8 +167,8 @@ tableshift_fruit_once_per_day = ColumnToText(
     name="FRUIT_ONCE_PER_DAY",
     short_description="consumed fruit one or more times per day",
     value_map={
-        1.0: "Yes, consumed fruit one or more times per day.",
-        2.0: "No, consumed fruit less than one time per day.",
+        1.0: "Yes.",  # , consumed fruit one or more times per day
+        2.0: "No.",  # , consumed fruit less than one time per day.
     },
     missing_value_fill="N/A (refused, unknown or missing)",
 )
@@ -162,8 +177,8 @@ tableshift_veg_once_per_day = ColumnToText(
     name="VEG_ONCE_PER_DAY",
     short_description="consumed vegetables one or more times per day",
     value_map={
-        1.0: "Yes, consumed vegetables one or more times per day.",
-        2.0: "No, consumed vegetables less than one time per day.",
+        1.0: "Yes.",  # , consumed vegetables one or more times per day
+        2.0: "No.",  # , consumed vegetables less than one time per day
     },
     missing_value_fill="N/A (refused, unknown or missing)",
 )
@@ -177,7 +192,7 @@ tableshift_drnk_per_week = ColumnToText(
 
 tableshift_rfbing5 = ColumnToText(
     name="RFBING5",
-    short_description="binge drinker (males >= 5 drinks per occasion, females >= 4 drinks per occasion)",
+    short_description="binge drinker (i.e. >= 5 drinks per occasion for males, >= 4 drinks per occasion for females)",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -246,7 +261,7 @@ tableshift_checkup1 = ColumnToText(
 
 tableshift_educa = ColumnToText(
     name="EDUCA",
-    short_description="Highest grade or year of school completed",
+    short_description="highest grade or year of school completed",
     value_map={
         1.0: "Never attended school or only kindergarten",
         2.0: "Grades 1 through 8 (Elementary)",
@@ -356,7 +371,7 @@ tableshift_state = ColumnToText(
 
 tableshift_medcost = ColumnToText(
     name="MEDCOST",
-    short_description="Was there a time in the last 12 months when you needed to see a doctor, but could not because of cost of medical care?",
+    short_description="unmet medical need due to costs in the last 12 months",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -379,9 +394,9 @@ tableshift_prace1 = ColumnToText(
         4.0: "Asian",
         5.0: "Native Hawaiian or other Pacific Islander",
         6.0: "Other race",
-        7.0: "No preferred race",  ##na_value
-        8.0: "Multiracial, but preferred race not answered",  ##na_value
-        77.0: "Don’t know/Not sure",  ##na_value
+        7.0: "No preferred race",  # na_value
+        8.0: "Multiracial, but preferred race not answered",  # na_value
+        77.0: "Don’t know/Not sure",  # na_value
         9.0: "Refused",
     },
     missing_value_fill="N/A (refused or no preferred race)",
@@ -418,7 +433,7 @@ tableshift_diabetes = ColumnToText(
 # DIABETES question
 brfss_diabetes_qa = MultipleChoiceQA(
     column=brfss_diabetes_threshold.apply_to_column_name("DIABETES"),
-    text="Has this person ever been told they have diabetes?",
+    text="Has this person ever been diagnosed with diabetes?",
     choices=(
         Choice("Yes, this person has been told they have diabetes", 1),
         Choice("No, this person has not been told they have diabetes", 0),
@@ -442,9 +457,6 @@ tableshift_diabetes_target_col = ColumnToText(
     missing_value_fill="N/A (refused or unknown)",
     question=brfss_diabetes_qa,
 )
-
-
-## TODO
 
 
 def parse_age_group(val):
@@ -521,8 +533,8 @@ tableshift_employ1 = ColumnToText(
         2.0: "Self-employed",
         3.0: "Out of work for 1 year or more",
         4.0: "Out of work for less than 1 year",
-        5.0: "A homemaker",
-        6.0: "A student",
+        5.0: "Homemaker",
+        6.0: "Student",
         7.0: "Retired",
         8.0: "Unable to work",
         # 9.0: "Refused",

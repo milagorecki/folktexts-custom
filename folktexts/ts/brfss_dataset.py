@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-import pickle
+# import pickle
 from pathlib import Path
 
 import pandas as pd
@@ -14,13 +14,12 @@ from .tableshift_tasks import (
     TableshiftBRFSSTaskMetadata,
     passthrough_preprocessor_config,
 )
+from tableshift import get_iid_dataset
 
 DEFAULT_DATA_DIR = Path("~/data").expanduser().resolve()
 DEFAULT_TEST_SIZE = 0.1
 DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
-
-from tableshift import get_iid_dataset
 
 
 class TableshiftBRFSSDataset(Dataset):
@@ -96,7 +95,7 @@ class TableshiftBRFSSDataset(Dataset):
 
         # if not already available, load data
         csv_file = cache_dir / f"{task_obj.name.lower()}_all.csv"
-        pickle_file = cache_dir / f"{task_obj.name.lower()}.pickle"
+        # pickle_file = cache_dir / f"{task_obj.name.lower()}.pickle"
         if csv_file.exists():
             logging.info("Loading TableShift task data from cache...")
             logging.warning("Assuming dataset is preprocessed as wanted.")
@@ -109,7 +108,7 @@ class TableshiftBRFSSDataset(Dataset):
                     "Could not load dataset from cache, save dataset locally first."
                 )
             else:
-                # Load ACS data source
+                # Load Tableshift data source
                 logging.info("Loading TableShift task data (may take a while)...")
                 tab_dataset = get_iid_dataset(
                     task_obj.name.lower(),
@@ -119,7 +118,7 @@ class TableshiftBRFSSDataset(Dataset):
                 X, y, _, _ = tab_dataset.get_pandas("all")
                 df = pd.concat([X, y], axis=1)
 
-                ## load data via dataloader?
+                # load data via dataloader?
                 # #TODO: check this option -- TabularDataset functions needed? clash of default options?
                 # data_source = task_obj.tableshift_obj.data_source_cls(
                 #     task=task_obj.name.lower(),
