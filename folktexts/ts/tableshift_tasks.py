@@ -12,7 +12,7 @@ from ..qa_interface import DirectNumericQA, MultipleChoiceQA
 from ..task import TaskMetadata
 from ..threshold import Threshold
 from . import brfss_columns, brfss_questions
-from .tableshift_thresholds import *
+from .tableshift_thresholds import brfss_diabetes_threshold, brfss_hypertension_threshold
 from ..dataset import DEFAULT_VAL_SIZE, DEFAULT_TEST_SIZE
 
 from tableshift.configs.benchmark_configs import BENCHMARK_CONFIGS, PreprocessorConfig
@@ -21,6 +21,19 @@ from tableshift.core.tasks import TaskConfig, _TASK_REGISTRY
 from tableshift.core.splitter import RandomSplitter
 
 import logging
+from string import Template
+
+TABLESHIFT_TASK_DESCRIPTION = Template("""\
+The following data corresponds to $respondent. \
+The survey was conducted among US residents in $year. \
+Please answer the question based on the information provided. \
+The data provided is enough to reach an approximate answer$suffix.
+""")
+TABLESHIFT_TASK_DESCRIPTION_DEFAULTS = {
+    "respondent": "a survey respondent",
+    "year": "the years 2015, 2017, 2019 and 2021",
+    "suffix": "",
+}
 
 # custom preprocessor to avoid normalization and one-hot encoding
 passthrough_preprocessor_config = PreprocessorConfig(
@@ -122,7 +135,7 @@ class TableshiftBRFSSTaskMetadata(TaskMetadata):
             # get configs and create joint dataclass
             benchmark_configs = BENCHMARK_CONFIGS[
                 name.lower()
-            ]  #'splitter', 'grouper', 'preprocessor_config', 'tabular_dataset_kwargs'
+            ]  # 'splitter', 'grouper', 'preprocessor_config', 'tabular_dataset_kwargs'
             # update to custom preprocessor config to avoid normalization and one-hot encoding
             benchmark_configs.preprocessor_config = passthrough_preprocessor_config
 
@@ -134,7 +147,7 @@ class TableshiftBRFSSTaskMetadata(TaskMetadata):
             )
             task_config = _TASK_REGISTRY[
                 name.lower()
-            ]  ##'data_source_cls', 'feature_list'
+            ]  # 'data_source_cls', 'feature_list'
             tableshift_task = TableshiftTask(
                 **task_config.__dict__, **benchmark_configs.__dict__
             )
