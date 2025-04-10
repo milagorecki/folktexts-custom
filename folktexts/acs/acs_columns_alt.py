@@ -384,18 +384,20 @@ def transform_relp(x):
 
 
 def transform_wkhp(x, bin_width=10, max_hours=60):
-    bins = np.array([bin_width * i for i in range(0, max_hours // bin_width + 1)])
-    if x <= bins[0]:
+    # Generate bin edges incl max_hours
+    bins = np.arange(0, max_hours + bin_width, bin_width)
+
+    # Handle non-working or underage responses
+    if x <= 0:
         return "N/A (less than 16 years old, or did not work during the past 12 months)"
     elif x > bins[-1]:
         return f"more than {bins[-1]} hours"
-    else:
-        l, u = [
-            (bins[k], bins[k + 1] - 1)
-            for k in range(len(bins))
-            if x >= bins[k] and x < bins[k + 1]
-        ][0]
-        return f"{l}-{u} hours"
+
+    # Find appropriate bin
+    idx = np.searchsorted(bins, x, side='right') - 1
+    lower = bins[idx]
+    upper = bins[idx + 1] - 1
+    return f"{lower}-{upper} hours"
 
 
 def transform_rac1p_binary(x):
