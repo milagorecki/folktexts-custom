@@ -390,7 +390,7 @@ def transform_wkhp(x, bin_width=10, max_hours=60):
     # Handle non-working or underage responses
     if x <= 0:
         return "N/A (less than 16 years old, or did not work during the past 12 months)"
-    elif x > bins[-1]:
+    elif x >= bins[-1]:
         return f"more than {bins[-1]} hours"
 
     # Find appropriate bin
