@@ -8,6 +8,7 @@ e.g.,
 from __future__ import annotations
 
 import logging
+from functools import partial
 
 from copy import deepcopy
 import inspect
@@ -21,8 +22,8 @@ from .task import TaskMetadata
 
 from folktexts.acs.acs_columns_alt import simplified_value_maps
 from folktexts.acs._utils import reset_cache
-from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
-from folktexts.ts import TABLESHIFT_TASK_DESCRIPTION, TABLESHIFT_TASK_DESCRIPTION_DEFAULTS
+from folktexts.acs import ACSTaskMetadata, ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
+from folktexts.ts import TableshiftBRFSSTaskMetadata, TABLESHIFT_TASK_DESCRIPTION, TABLESHIFT_TASK_DESCRIPTION_DEFAULTS
 
 
 SYSTEM_PROMPT = """\
@@ -50,7 +51,10 @@ _valid_keys_cache = {}
 
 
 class PromptVariation:
-    def __init__(self, description, task):
+    def __init__(self, description: str, task: ACSTaskMetadata | TableshiftBRFSSTaskMetadata):
+        assert isinstance(task, ACSTaskMetadata) or isinstance(
+            task, TableshiftBRFSSTaskMetadata
+        ), "Provide task object."
         self.description = description
         self.task = deepcopy(task)
 
@@ -442,3 +446,26 @@ def apply_chat_template(
     # > some models add a newline character and/or a <end_of_turn> token
     filled_prompt = filled_prompt[: len(chat_prompt) + filled_prompt.find(chat_prompt)]
     return filled_prompt
+
+
+# def encode_row_split(split: str | pd.DataFrame, 
+#                      task: str | ACSTaskMetadata | TableshiftBRFSSTaskMetadata, 
+#                      prompt_variation: dict = {'connector': 'is', 'format': 'text', 'granularity': 'original'},
+#                      ):
+#     from tqdm import tqdm
+#     tqdm.pandas()
+#     if isinstance(str, split):
+#         assert split in ['test', 'train']
+#         logging.info('Loading the dataset split..')
+#         if isinstance(ACSTaskMetadata, task):
+#             task = ACSTaskMetadata.get_task(task)
+#             acs_dataset = ACSDataset.make_from_task(task=task, cache_dir=DATA_DIR)
+#         elif isinstance(TableshiftBRFSSTaskMetadata, task):
+#             pass
+#     elif isinstance(split, pd.DataFrame):
+#         data = split
+
+#     encode_row = partial(encode_row_prompt, task=task, prompt_variation=prompt_variation)
+#     data = data.progress_apply(lambda row: encode_row(row), axis=1).to_frame(name='text')
+
+#     return data
