@@ -11,6 +11,7 @@ TODO
 from __future__ import annotations
 
 import logging
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -164,12 +165,12 @@ class Dataset:
         train_size = 1 - test_size - val_size
         train_indices = indices[: int(len(indices) * train_size)]
         test_indices = indices[
-            len(train_indices) : int(len(indices) * (train_size + test_size))
+            len(train_indices): int(len(indices) * (train_size + test_size))
         ]
 
         # Split val if requested
         if val_size is not None and val_size > 0:
-            val_indices = indices[len(train_indices) + len(test_indices) :]
+            val_indices = indices[len(train_indices) + len(test_indices):]
         else:
             val_indices = None
 
@@ -393,3 +394,21 @@ class Dataset:
         }
 
         return int(hash_dict(hashable_params), 16)
+
+    def convert_split_to_text(self,
+                              split: str,
+                              prompt_variation: dict = {'connector': 'is', 'format': 'text', 'granularity': 'original'},
+                              ) -> pd.DataFrame:
+        from tqdm import tqdm
+        from folktexts.prompting import encode_row_prompt
+        tqdm.pandas()
+        assert split in ['test', 'train']
+        X, y = self.get_data_split(split)
+
+        encode_row = partial(encode_row_prompt, task=self._task, prompt_variation=prompt_variation)
+        X_text = X.progress_apply(lambda row: encode_row(row), axis=1).to_frame(name='text')
+        if not self._task._use_numeric_qa:
+            map_label_to_choice = {choice.data_value: answer for choice, answer in self._task.multiple_choice_qa.choice_to_key.items()}
+            y_text = y.replace(map_label_to_choice)
+            return X_text, y_text
+        return X_text, y
