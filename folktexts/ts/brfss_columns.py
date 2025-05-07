@@ -19,7 +19,10 @@ import logging
 
 from ..col_to_text import ColumnToText
 from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
-from .tableshift_thresholds import brfss_diabetes_threshold, brfss_hypertension_threshold
+from .tableshift_thresholds import (
+    brfss_diabetes_threshold,
+    brfss_hypertension_threshold,
+)
 
 
 tableshift_physical_health = ColumnToText(
@@ -34,7 +37,7 @@ logging.debug(
 )
 tableshift_high_blood_pressure = ColumnToText(
     name="HIGH_BLOOD_PRESS",
-    short_description="ever told to have high blood pressure by a health professional",
+    short_description="prior diagnosis of high blood pressure",
     value_map={
         1.0: "No",
         2.0: "Yes",
@@ -61,7 +64,7 @@ brfss_hypertension_numeric_qa = DirectNumericQA(
 
 tableshift_hypertension_target_col = ColumnToText(
     name=brfss_hypertension_threshold.apply_to_column_name("HIGH_BLOOD_PRESS"),
-    short_description="ever told to have diabetes",
+    short_description="prior diagnosis of diabetes",
     value_map={
         0.0: "No",
         1.0: "Yes",
@@ -88,7 +91,7 @@ tableshift_chol_chk_past_5_years = ColumnToText(
 logging.debug("Encoding value map keys of 'TOLDHI' as strings.")
 tableshift_told_hi = ColumnToText(
     name="TOLDHI",
-    short_description="ever been told to have high blood cholesterol",
+    short_description="prior diagnosis of high blood cholesterol",
     value_map={
         "1.0": "Yes",
         "2.0": "No",
@@ -120,7 +123,7 @@ tableshift_bmi5cat = ColumnToText(
 
 tableshift_smoke100 = ColumnToText(
     name="SMOKE100",
-    short_description="smoked at least 100 cigarettes in lifetime",
+    short_description="history of smoking at least 100 cigarettes in their lifetime",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -145,7 +148,7 @@ tableshift_smokday2 = ColumnToText(
 
 tableshift_cvdstrk3 = ColumnToText(
     name="CVDSTRK3",
-    short_description="had a stroke",
+    short_description="previous stroke event",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -155,7 +158,7 @@ tableshift_cvdstrk3 = ColumnToText(
 
 tableshift_michd = ColumnToText(
     name="MICHD",
-    short_description="had a myocardial infarction (MI) or coronary heart disease (CHD)",
+    short_description="previous event of a myocardial infarction (MI) or coronary heart disease (CHD)",
     value_map={
         1.0: "Yes, reported myocardial infarction or coronary heart disease.",
         2.0: "No, did not report myocardial infarction or coronary heart disease.",
@@ -165,20 +168,20 @@ tableshift_michd = ColumnToText(
 
 tableshift_fruit_once_per_day = ColumnToText(
     name="FRUIT_ONCE_PER_DAY",
-    short_description="consumed fruit one or more times per day",
+    short_description="consumption of fruit one or more times per day",
     value_map={
-        1.0: "Yes.",  # , consumed fruit one or more times per day
-        2.0: "No.",  # , consumed fruit less than one time per day.
+        1.0: "Yes",  # , consumed fruit one or more times per day
+        2.0: "No",  # , consumed fruit less than one time per day.
     },
     missing_value_fill="N/A (refused, unknown or missing)",
 )
 
 tableshift_veg_once_per_day = ColumnToText(
     name="VEG_ONCE_PER_DAY",
-    short_description="consumed vegetables one or more times per day",
+    short_description="consumption of vegetables one or more times per day",
     value_map={
-        1.0: "Yes.",  # , consumed vegetables one or more times per day
-        2.0: "No.",  # , consumed vegetables less than one time per day
+        1.0: "Yes",  # , consumed vegetables one or more times per day
+        2.0: "No",  # , consumed vegetables less than one time per day
     },
     missing_value_fill="N/A (refused, unknown or missing)",
 )
@@ -192,7 +195,7 @@ tableshift_drnk_per_week = ColumnToText(
 
 tableshift_rfbing5 = ColumnToText(
     name="RFBING5",
-    short_description="binge drinker (i.e. >= 5 drinks per occasion for males, >= 4 drinks per occasion for females)",
+    short_description="binge drinking behaviour (i.e. >= 5 drinks per occasion for males, >= 4 drinks per occasion for females)",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -202,7 +205,7 @@ tableshift_rfbing5 = ColumnToText(
 
 tableshift_totinda = ColumnToText(
     name="TOTINDA",
-    short_description="reporting physical activity during the past 30 days other than regular job",
+    short_description="leisure-time physical activity in the past 30 days",
     value_map={
         1.0: "Yes, had physical activity or exercise during the past 30 days other than regular job.",
         2.0: "No physical activity or exercise during the past 30 days other than regular job",
@@ -276,7 +279,7 @@ tableshift_educa = ColumnToText(
 
 tableshift_health_cov = ColumnToText(
     name="HEALTH_COV",
-    short_description="current health coverage",
+    short_description="current health coverage status",
     value_map={
         1.0: "Yes, has a health care coverage",
         2.0: "No, does not have health care coverage",
@@ -418,7 +421,7 @@ logging.debug(
 )
 tableshift_diabetes = ColumnToText(
     name="DIABETES",
-    short_description="ever told to have diabetes",
+    short_description="prior diagnosis of diabetes",
     value_map={
         1.0: "Yes",
         2.0: "Yes, but female told only during pregnancy",
@@ -490,7 +493,7 @@ tableshift_age_group = ColumnToText(
 
 tableshift_chcscncr = ColumnToText(
     name="CHCSCNCR",
-    short_description="skin cancer or ever told to have skin cancer",
+    short_description="prior diagnosis of skin cancer",
     value_map={
         1.0: "Yes",
         2.0: "No",
@@ -502,7 +505,7 @@ tableshift_chcscncr = ColumnToText(
 
 tableshift_chcocncr = ColumnToText(
     name="CHCOCNCR",
-    short_description="other cancer or ever told to have other cancer than skin cancer",
+    short_description="prior diagnosis of other cancer than skin cancer",
     value_map={
         1.0: "Yes",
         2.0: "No",
