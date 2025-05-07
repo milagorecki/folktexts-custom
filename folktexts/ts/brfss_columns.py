@@ -27,7 +27,7 @@ from .tableshift_thresholds import (
 
 tableshift_physical_health = ColumnToText(
     name="PHYSHLTH",
-    short_description="number of days during the past 30 dayswhere physical health was not good",
+    short_description="number of days during the past 30 days where physical health was not good",
     value_map=lambda x: f"{int(x)} days",
     missing_value_fill="N/A (refused or unknown)",
 )
