@@ -1,5 +1,4 @@
-"""Module for using a language model through a web API for risk classification.
-"""
+"""Module for using a language model through a web API for risk classification."""
 
 from __future__ import annotations
 
@@ -29,7 +28,7 @@ class WebAPILLMClassifier(LLMClassifier):
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
-        max_api_rpm: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
+        max_api_rpm: int = 5000,  # NOTE: OpenAI Tier 1 limit is only 500 RPM !
         seed: int = 42,
         **inference_kwargs,
     ):
@@ -89,21 +88,30 @@ class WebAPILLMClassifier(LLMClassifier):
         assert self.check_webAPI_deps(), "Web API dependencies are not installed."
 
         # Check OpenAI API key was passed
-        if "OPENAI_API_KEY" not in os.environ:
-            raise ValueError("OpenAI API key not found in environment variables")
+        if "AZURE_API_KEY" not in os.environ:
+            raise ValueError("Azure API key not found in environment variables")
+        if "AZURE_API_BASE" not in os.environ:
+            raise ValueError("Azure API base key not found in environment variables")
+        if "AZURE_API_VERSION" not in os.environ:
+            raise ValueError("Azure API version key not found in environment variables")
 
         # Set-up litellm API client
         import litellm
+
         litellm.success_callback = [self.track_cost_callback]
 
         from litellm import completion
+
         self.text_completion_api = completion
 
         # Get supported parameters
         from litellm import get_supported_openai_params
+
         supported_params = get_supported_openai_params(model=self.model_name)
         if supported_params is None:
-            raise RuntimeError(f"Failed to get supported parameters for model '{self.model_name}'.")
+            raise RuntimeError(
+                f"Failed to get supported parameters for model '{self.model_name}'."
+            )
         self.supported_params = set(supported_params)
 
         # Set litellm logger level to WARNING
@@ -200,7 +208,7 @@ class WebAPILLMClassifier(LLMClassifier):
             # Query the model API
             # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
             response = self.text_completion_api(
-                model=self.model_name,
+                model="azure/" + self.model_name,
                 messages=messages,
                 **api_call_params,
             )
@@ -247,19 +255,20 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Decode model output into risk estimates
         # 1. Construct vocabulary dict for this response
-        vocab_tokens = {tok for forward_pass in token_probs_all_passes for tok in forward_pass}
+        vocab_tokens = {
+            tok for forward_pass in token_probs_all_passes for tok in forward_pass
+        }
 
         token_to_id = {tok: i for i, tok in enumerate(vocab_tokens)}
         id_to_token = {i: tok for i, tok in enumerate(vocab_tokens)}
 
         # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size)
-        token_probs_array = np.array([
+        token_probs_array = np.array(
             [
-                forward_pass.get(id_to_token[i], 0)
-                for i in range(len(vocab_tokens))
+                [forward_pass.get(id_to_token[i], 0) for i in range(len(vocab_tokens))]
+                for forward_pass in token_probs_all_passes
             ]
-            for forward_pass in token_probs_all_passes
-        ])
+        )
         # NOTE: token_probs.shape = (num_passes, vocab_size)
 
         # Get risk estimate
@@ -271,7 +280,9 @@ class WebAPILLMClassifier(LLMClassifier):
         # Sanity check numeric answers based on global model response:
         if isinstance(question, DirectNumericQA):
             try:
-                numeric_response = re.match(r"[-+]?\d*\.\d+|\d+", response_message).group()
+                numeric_response = re.match(
+                    r"[-+]?\d*\.\d+|\d+", response_message
+                ).group()
                 risk_estimate_full_text = float(numeric_response)
 
                 if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
@@ -293,7 +304,8 @@ class WebAPILLMClassifier(LLMClassifier):
             except Exception:
                 logging.info(
                     f"Failed to extract numeric response from message='{response_message}';\n"
-                    f"Falling back on standard risk estimate of {risk_estimate}.")
+                    f"Falling back on standard risk estimate of {risk_estimate}."
+                )
 
         return risk_estimate
 
