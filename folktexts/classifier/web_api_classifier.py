@@ -52,6 +52,7 @@ class WebAPILLMClassifier(LLMClassifier):
         threshold: float = 0.5,
         correct_order_bias: bool = True,
         max_api_rpm: int = 5000,  # NOTE: OpenAI Tier 1 limit is only 500 RPM !
+        max_api_tpm: int = 100000,
         seed: int = 42,
         **inference_kwargs,
     ):
@@ -109,6 +110,14 @@ class WebAPILLMClassifier(LLMClassifier):
                 f"MAX_API_RPM environment variable is set. "
                 f"Overriding previous value of {max_api_rpm} with {self.max_api_rpm}."
             )
+        # Set maximum tokens per minute
+        self.max_api_tpm = max_api_tpm
+        if "MAX_API_TPM" in os.environ:
+            self.max_api_tpm = int(os.getenv("MAX_API_RPM"))
+            logging.warning(
+                f"MAX_API_TPM environment variable is set. "
+                f"Overriding previous value of {max_api_tpm} with {self.max_api_tpm}."
+            )
 
         # Check extra dependencies
         assert self.check_webAPI_deps(), "Web API dependencies are not installed."
@@ -129,15 +138,6 @@ class WebAPILLMClassifier(LLMClassifier):
                     "AZURE_API_VERSION not found in environment variables."
                 )
 
-        # Set-up litellm API client
-        import litellm
-
-        litellm.success_callback = [self.track_cost_callback]
-
-        from litellm import completion
-
-        self.text_completion_api = completion
-
         # Get supported parameters
         from litellm import get_supported_openai_params
 
@@ -151,11 +151,19 @@ class WebAPILLMClassifier(LLMClassifier):
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 
+        from llm_api_client import APIClient
+
+        self.client = APIClient(
+            max_requests_per_minute=self.max_api_rpm,
+            max_tokens_per_minute=self.max_api_tpm
+        )
+
     @staticmethod
     def check_webAPI_deps() -> bool:
         """Check if litellm dependencies are available."""
         try:
             import litellm  # noqa: F401
+            import llm_api_client  # noqa: F401
         except ImportError:
             logging.critical(
                 "Please install extra API dependencies with "
@@ -173,8 +181,6 @@ class WebAPILLMClassifier(LLMClassifier):
         context_size: int = None,
     ) -> list[dict]:
         """Query the web API with a batch of prompts and returns the json response.
-
-        TODO! Retry on non-successful API calls (e.g., RPM exceeded).
 
         Parameters
         ----------
@@ -232,34 +238,18 @@ class WebAPILLMClassifier(LLMClassifier):
             raise ValueError(f"Unknown question type '{type(question)}'.")
 
         # Query model for each prompt in the batch
-        responses_batch = []
-        for prompt in prompts_batch:
+        # responses_batch = []
+        requests_data = [
+            {
+                "model": self.deployment_name,
+                "messages": [{"role": "system", "content": system_prompt},
+                             {"role": "user", "content": prompt}],
+                **api_call_params
+            }
 
-            # Construct prompt messages object
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
+            for prompt in prompts_batch
             ]
-
-            # Query the model API
-            # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
-
-            for attempt in range(5):  # retry up to 5 times
-                try:
-                    response = self.text_completion_api(
-                        model=self.deployment_name,
-                        messages=messages,
-                        **api_call_params,
-                    )
-                    responses_batch.append(response)
-                    break  # success
-                except litellm.RateLimitError as e:
-                    wait_time = 2**attempt + random.uniform(0, 1)  # exponential backoff
-                    print(f"Rate limited. Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-
-            # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
-            time.sleep(60 / self.max_api_rpm)
+        responses_batch = self.client.make_requests_with_retries(requests_data, max_retries = 5)
 
         return responses_batch
 
@@ -390,17 +380,29 @@ class WebAPILLMClassifier(LLMClassifier):
             context_size=context_size,
         )
 
-        # print('batch', api_responses_batch)
-        # print('first response', api_responses_batch[0])
-        # print('content', api_responses_batch[0].choices[0].logprobs.content)
-
         # Parse API responses and decode model output
-        risk_estimates_batch = [
-            self._decode_risk_estimate_from_api_response(response, question)
-            for response in api_responses_batch
-        ]
+        risk_estimates_batch = []
+        for i, response in enumerate(api_responses_batch):
+            if response:
+                try:
+                    message_content = response.choices[0].message.content
+                    logging.debug(f"Response {i+1}: {message_content[:100]}...") # Print first 100 chars
+                    risk_estimates_batch.append(self._decode_risk_estimate_from_api_response(response, question))
+                except (AttributeError, IndexError, TypeError) as e:
+                    logging.error(f"Response {i+1}: Could not parse response content. Error: {e}")
+                    logging.error(f"Raw response: {response}")
+            else:
+                logging.error(f"Response {i+1}: Request failed.")
 
+        self.track_stats()
         return risk_estimates_batch
+
+    def track_stats(self):
+        logging.info(f"Total cost: ${self.client.tracker.total_cost:.4f}")
+        logging.info(f"Total prompt tokens: {self.client.tracker.total_prompt_tokens}")
+        logging.info(f"Total completion tokens: {self.client.tracker.total_completion_tokens}")
+        logging.info(f"Number of successful API calls: {self.client.tracker.num_api_calls}")
+        logging.info(f"Mean response time: {self.client.tracker.mean_response_time:.2f}s")
 
     def track_cost_callback(
         self,
