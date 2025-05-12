@@ -7,6 +7,7 @@ import os
 import re
 import time
 from typing import Callable
+import random
 
 import numpy as np
 import pandas as pd
@@ -17,8 +18,32 @@ from folktexts.task import TaskMetadata
 from .base import LLMClassifier
 
 
+
+
 class WebAPILLMClassifier(LLMClassifier):
     """Use an LLM through a web API to produce risk scores."""
+
+    _model_to_azure_api_version = {
+    "o1": "2024-12-01-preview",
+    "gpt-4o": "2024-08-01-preview",
+    "gpt-3.5-turbo-0125": "2024-08-01-preview",
+    "o3-mini": "2025-01-01-preview",
+    "gpt-4.5": "2025-01-01-preview",
+    "gpt-4.1": "2025-01-01-preview",
+    "o3": "2025-01-01-preview",
+    "o4-mini": "2025-01-01-preview",
+    }
+
+    _model_to_azure_deployment_name = {
+        "o1": "azure/mremeli-o1-2024-12-17",
+        "gpt-4o": "azure/mremeli-gpt-4o-2024-08-06",
+        "gpt-3.5-turbo-0125": "azure/mremeli-gpt-35-turbo-0125",
+        "o3-mini": "azure/mremeli-o3-mini-2025-01-31",
+        "gpt-4.5": "azure/mremeli-gpt-4.5-preview-2025-02-27",
+        "gpt-4.1": "azure/mremeli-gpt-4.1-2025-04-14",
+        "o3": "azure/mremeli-o3-2025-04-16",
+        "o4-mini": "azure/mremeli-o4-mini-2025-04-16",
+    }
 
     def __init__(
         self,
@@ -71,6 +96,7 @@ class WebAPILLMClassifier(LLMClassifier):
             seed=seed,
             **inference_kwargs,
         )
+        self.deployment_name = self._model_to_azure_deployment_name.get(model_name, model_name)
 
         # Initialize total cost of API calls
         self._total_cost = 0
@@ -89,11 +115,17 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Check OpenAI API key was passed
         if "AZURE_API_KEY" not in os.environ:
-            raise ValueError("Azure API key not found in environment variables")
+            raise ValueError("AZURE_API_KEY not found in environment variables")
         if "AZURE_API_BASE" not in os.environ:
-            raise ValueError("Azure API base key not found in environment variables")
+            raise ValueError("AZURE_API_BASEy not found in environment variables")
         if "AZURE_API_VERSION" not in os.environ:
-            raise ValueError("Azure API version key not found in environment variables")
+            api_version = self._model_to_azure_api_version.get(self.model_name)
+            if api_version:
+                print(f"Setting AZURE_API_VERSION = {api_version}" )
+                # Set environment variable
+                os.environ["AZURE_API_VERSION"] = api_version
+            else:
+                raise ValueError("AZURE_API_VERSION not found in environment variables.")
 
         # Set-up litellm API client
         import litellm
@@ -107,10 +139,10 @@ class WebAPILLMClassifier(LLMClassifier):
         # Get supported parameters
         from litellm import get_supported_openai_params
 
-        supported_params = get_supported_openai_params(model=self.model_name)
+        supported_params = get_supported_openai_params(model=self.deployment_name) 
         if supported_params is None:
             raise RuntimeError(
-                f"Failed to get supported parameters for model '{self.model_name}'."
+                f"Failed to get supported parameters for model '{self.deployment_name}'."
             )
         self.supported_params = set(supported_params)
 
@@ -156,6 +188,7 @@ class WebAPILLMClassifier(LLMClassifier):
         responses_batch : list[dict]
             The returned JSON responses for each prompt in the batch.
         """
+        import litellm
         # Adapt number of forward passes
         # > Single token answers should require only one forward pass
         if question.num_forward_passes == 1:
@@ -178,7 +211,7 @@ class WebAPILLMClassifier(LLMClassifier):
 
         if set(api_call_params.keys()) - self.supported_params:
             raise RuntimeError(
-                f"Unsupported API parameters for model '{self.model_name}': "
+                f"Unsupported API parameters for model '{self.deployment_name}': "
                 f"{set(api_call_params.keys()) - self.supported_params}"
             )
 
@@ -207,12 +240,20 @@ class WebAPILLMClassifier(LLMClassifier):
 
             # Query the model API
             # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
-            response = self.text_completion_api(
-                model="azure/" + self.model_name,
-                messages=messages,
-                **api_call_params,
-            )
-            responses_batch.append(response)
+
+            for attempt in range(5):  # retry up to 5 times
+                try:
+                    response = self.text_completion_api(
+                        model=self.deployment_name,
+                        messages=messages,
+                        **api_call_params,
+                    )
+                    responses_batch.append(response)
+                    break  # success
+                except litellm.RateLimitError as e:
+                    wait_time = 2 ** attempt + random.uniform(0, 1) # exponential backoff
+                    print(f"Rate limited. Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
 
             # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
             time.sleep(60 / self.max_api_rpm)
@@ -242,13 +283,15 @@ class WebAPILLMClassifier(LLMClassifier):
         response_message: str = response.choices[0].message.content
 
         # Get top token choices for each forward pass
-        token_choices_all_passes = response.choices[0].logprobs["content"]
+        token_choices_all_passes = response.choices[0].logprobs.content
+        # print(token_choices_all_passes)
+
 
         # Construct dictionary of token to linear token probability for each forward pass
         token_probs_all_passes = [
             {
-                token_metadata["token"]: np.exp(token_metadata["logprob"])
-                for token_metadata in top_token_logprobs["top_logprobs"]
+                token_metadata.token: np.exp(token_metadata.logprob) ## TODO: UNDO 
+                for token_metadata in top_token_logprobs.top_logprobs
             }
             for top_token_logprobs in token_choices_all_passes
         ]
@@ -344,6 +387,10 @@ class WebAPILLMClassifier(LLMClassifier):
             question=question,
             context_size=context_size,
         )
+
+        # print('batch', api_responses_batch)
+        # print('first response', api_responses_batch[0])
+        # print('content', api_responses_batch[0].choices[0].logprobs.content)
 
         # Parse API responses and decode model output
         risk_estimates_batch = [
