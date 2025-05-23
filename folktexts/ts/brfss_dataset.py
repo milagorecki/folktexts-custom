@@ -1,9 +1,9 @@
-"""Module to access tableshift BRFSS data using the tableshift package.
-"""
+"""Module to access tableshift BRFSS data using the tableshift package."""
 
 from __future__ import annotations
 
 import logging
+
 # import pickle
 from pathlib import Path
 
@@ -117,19 +117,6 @@ class TableshiftBRFSSDataset(Dataset):
                 )
                 X, y, _, _ = tab_dataset.get_pandas("all")
                 df = pd.concat([X, y], axis=1)
-
-                # load data via dataloader?
-                # #TODO: check this option -- TabularDataset functions needed? clash of default options?
-                # data_source = task_obj.tableshift_obj.data_source_cls(
-                #     task=task_obj.name.lower(),
-                #     years=(
-                #         task_obj.tableshift_obj.tabular_dataset_kwargs["years"]
-                #         if not survey_year
-                #         else (survey_year)
-                #     ),
-                # )
-                # # Get full ACS dataset
-                # full_data = data_source.get_data()
 
         # Parse data for this task
         parsed_data = cls._parse_task_data(df, task_obj)
