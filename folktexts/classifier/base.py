@@ -269,6 +269,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
                 "`predictions_save_path` to save alongside predictions to disk. ")
 
         # Check if `predictions_save_path` exists and load predictions if possible
+        logging.info(f"Check if predictions_save_path '{predictions_save_path}' exists:{Path(predictions_save_path).exists()}")
         if predictions_save_path is not None and Path(predictions_save_path).exists():
             result = self._load_predictions_from_disk(predictions_save_path, data=data)
             if result is not None:
@@ -285,7 +286,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
                 f"`data` must be a pd.DataFrame, received {type(data)} instead.")
 
         # Compute risk estimates
-        risk_scores = self.compute_risk_estimates_for_dataframe(df=data)
+        risk_scores = self.compute_risk_estimates_for_dataframe(df=data, save_intermed={'path': predictions_save_path, 'labels': labels})
 
         # Save to disk if `predictions_save_path` is provided
         if predictions_save_path is not None:
@@ -312,6 +313,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     def compute_risk_estimates_for_dataframe(
         self,
         df: pd.DataFrame,
+        save_intermed = {'path': None, 'labels': None}
     ) -> np.ndarray:
         """Compute risk estimates for a specific dataframe (internal helper function).
 
@@ -376,6 +378,22 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
                 batch_risk_scores[:, q_idx] = np.clip(risk_estimates_batch, 0, 1)
 
             risk_scores[start_idx: end_idx] = batch_risk_scores.mean(axis=1)
+
+            if batch_idx % 10 == 0:
+                # Save to disk if `predictions_save_path` is provided
+                if 'path' in save_intermed.keys() and 'labels' in save_intermed.keys():
+                    path = save_intermed['path']
+                    labels = save_intermed['labels']
+                    if path:
+                        if path.suffix:  # assuming presence of suffix implies it's a file
+                            path = path.with_name(path.stem + "_batch" + path.suffix)
+                        else:
+                            path = path.with_name(path.name + "_batch").with_suffix(".csv")
+                        logging.info(f'Saving predictions to {path}')
+
+                        predictions_df = pd.DataFrame(risk_scores[:end_idx], index=labels[:end_idx].index, columns=[SCORE_COL_NAME])
+                        predictions_df[LABEL_COL_NAME] = labels[:end_idx]
+                        predictions_df.to_csv(path, index=True, mode="w")
 
         # Check that all risk scores were computed
         assert not np.isclose(risk_scores, fill_value).any()
