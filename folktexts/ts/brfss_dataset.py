@@ -52,7 +52,7 @@ class TableshiftBRFSSDataset(Dataset):
         cache_dir: str | Path = None,
         survey_year: str = None,
         seed: int = DEFAULT_SEED,
-        load_dataset_if_not_cached=False,  # add 'extra control' before downloading dataset
+        load_dataset_if_not_cached=True,  # add 'extra control' before downloading dataset
         **kwargs,
     ):
         """Construct an TableshiftBRFSSDataset object from a given Tableshift BRFSS task.
