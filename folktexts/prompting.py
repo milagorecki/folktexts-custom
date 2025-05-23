@@ -348,6 +348,15 @@ def encode_row_prompt_few_shot(
     # Get the question to ask
     question = question or task.question
 
+    ## TODO 
+    if prompt_variation and prompt_variation.get('example_order'):
+        logging.info('Varying the order of the examples.')
+        order_examples =  list(prompt_variation.pop('example_order').split(','))
+        logging.info(f"Received order: {order_examples} with length {len(order_examples)}, n_shots={n_shots}.")
+        assert len(order_examples) == n_shots
+        X_examples = X_examples.iloc[order_examples]
+        y_examples = y_examples.iloc[order_examples]
+
     # Add `n` example rows with respective labels
     for i in range(n_shots):
         prompt += (
