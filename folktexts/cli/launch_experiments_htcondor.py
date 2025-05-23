@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Launch htcondor jobs for all benchmark experiments.
-Usage:
-    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_acs_benchmark.py --results-dir './results/test/' --task ACSIncome --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is'
-    - exemplary: python -m folktexts.cli.launch_experiments_htcondor --executable-path ./folktexts/cli/run_tableshift_benchmark.py --results-dir './results/test/' --task BRFSS_Diabetes --model openai-community/gpt2 --subsampling=0.01 style='format=bullet,connector=is'
-"""
+"""Launch htcondor jobs for all benchmark experiments."""
 import argparse
 import math
 from pathlib import Path
