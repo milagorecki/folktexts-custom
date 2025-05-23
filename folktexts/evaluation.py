@@ -206,6 +206,7 @@ def compute_best_threshold(
     *,
     false_pos_cost: float = 1.0,
     false_neg_cost: float = 1.0,
+    maximize:str = 'balanced_accuracy'
 ) -> float:
     """Computes the binarization threshold that maximizes accuracy.
 
@@ -228,9 +229,15 @@ def compute_best_threshold(
 
     # Compute TPR and FPR for all possible thresholds
     fpr, tpr, thresholds = roc_curve(y_true, y_pred_scores)
-
-    # Compute the cost of each threshold
-    costs = false_pos_cost * fpr + false_neg_cost * (1 - tpr)
+    if maximize == 'balanced_accuracy':
+        # Compute the cost of each threshold
+        costs = false_pos_cost * fpr + false_neg_cost * (1-tpr)
+    else:
+        baserate = y_true.sum()/y_true.shape[0]
+        logging.info("baserate: ", baserate)
+        fp = fpr * (1-baserate)
+        fn = (1 - tpr) * baserate
+        costs = false_pos_cost * fp + false_neg_cost * fn
 
     # Get the threshold that minimizes the cost
     best_threshold = thresholds[np.argmin(costs)]
