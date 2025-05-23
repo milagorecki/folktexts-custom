@@ -317,12 +317,29 @@ class Benchmark:
                              labels=y_train)
 
         # Evaluate test risk scores
-        self._results = evaluate_predictions(
-            y_true=y_test.to_numpy(),
-            y_pred_scores=self._y_test_scores,
-            sensitive_attribute=s_test,
-            threshold=self.llm_clf.threshold,
-            model_name=self.llm_clf.model_name,
+        count_nan = np.isnan(self._y_test_scores).sum()
+        if count_nan > 0:
+            logging.warning(f'Predicted scores contain NaN values, dropping {count_nan} indices.')
+            # Get indices of NaNs
+            nan_indices = np.where(np.isnan(self._y_test_scores))[0]   
+            nan_mask = ~np.isnan(self._y_test_scores)  
+            logging.info(f'Indices with NaN values: {nan_indices}')
+            logging.info(f'New shapes: {y_test.to_numpy().shape} -> {y_test.to_numpy()[nan_mask].shape} {self._y_test_scores.shape,} -> {self._y_test_scores[nan_mask].shape}, {s_test.to_numpy().shape} -> {s_test.to_numpy()[nan_mask].shape}')
+            self._results = evaluate_predictions(
+                y_true=y_test.to_numpy()[nan_mask],
+                y_pred_scores=self._y_test_scores[nan_mask],
+                sensitive_attribute=s_test.to_numpy()[nan_mask], #.drop(index=nan_indices, axis=0),
+                threshold=self.llm_clf.threshold,
+                model_name=self.llm_clf.model_name,
+        )
+
+        else: 
+            self._results = evaluate_predictions(
+                y_true=y_test.to_numpy(),
+                y_pred_scores=self._y_test_scores,
+                sensitive_attribute=s_test,
+                threshold=self.llm_clf.threshold,
+                model_name=self.llm_clf.model_name,
         )
 
         self._results["threshold_fitted_on"] = self.llm_clf._threshold_fitted_on
