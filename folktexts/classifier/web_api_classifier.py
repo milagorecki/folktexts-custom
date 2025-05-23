@@ -249,7 +249,7 @@ class WebAPILLMClassifier(LLMClassifier):
 
             for prompt in prompts_batch
             ]
-        responses_batch = self.client.make_requests_with_retries(requests_data, max_retries = 5)
+        responses_batch = self.client.make_requests_with_retries(requests_data, max_retries = 10)
 
         return responses_batch
 
@@ -391,8 +391,11 @@ class WebAPILLMClassifier(LLMClassifier):
                 except (AttributeError, IndexError, TypeError) as e:
                     logging.error(f"Response {i+1}: Could not parse response content. Error: {e}")
                     logging.error(f"Raw response: {response}")
+                    logging.error("Adding NaN value.")
+                    risk_estimates_batch.append(np.nan)
             else:
-                logging.error(f"Response {i+1}: Request failed.")
+                logging.error(f"Response {i+1}: Request failed. Adding NaN value. ")
+                risk_estimates_batch.append(np.nan)
 
         self.track_stats()
         return risk_estimates_batch
